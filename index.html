@@ -324,13 +324,13 @@ const applyShortcuts=id=>{const ta=$(id);let v=ta.value;(DB.shortcuts||[]).forEa
 const addSC=()=>{const k=$('sc-key').value.trim(),v=$('sc-val').value.trim();if(!k||!v)return;if(!DB.shortcuts)DB.shortcuts=[];DB.shortcuts.push({key:k,val:v});save('/shortcuts',DB.shortcuts);navAd('notif');};
 const delSC=i=>{DB.shortcuts.splice(i,1);save('/shortcuts',DB.shortcuts);navAd('notif');};
 const sendGN=()=>{applyShortcuts('nfg');const m=$('nfg').value.trim();if(!m)return;if(!DB.notif_history)DB.notif_history=[];DB.notif_history.unshift({msg:m,date:new Date().toLocaleString()});(DB.hv||[]).forEach(h=>{if(!DB.data[h.u])DB.data[h.u]={};DB.data[h.u]['2b_new']=true;});save('/notif_history',DB.notif_history);navAd('notif');};
-const sendPN=()=>{const t=$('nft').value,m=$('nfp').value.trim();if(!t||!m)return;if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[t])DB.personal_notif[t]=[];DB.personal_notif[t].push({msg:m,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);navAd('notif');};
+const DB.personal_notif[t].unshift({msg:m,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);navAd('notif');};
 const delNf=i=>{DB.notif_history.splice(i,1);save('/notif_history',DB.notif_history);navAd('notif');};
 const saveEditPN=(u,i)=>{DB.personal_notif[u][i].msg=$('epn-msg').value;save('/personal_notif',DB.personal_notif);clsMod();navAd('notif');};
 const delPN=(u,i)=>{if(confirm('Xóa?')){DB.personal_notif[u].splice(i,1);save('/personal_notif',DB.personal_notif);navAd('notif');}};
 
 // ===== SEND AUTO NOTIF =====
-const sendAutoNotif=(u,msg)=>{if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[u])DB.personal_notif[u]=[];DB.personal_notif[u].push({msg,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);};
+const sendAutoNotif=(u,msg)=>{if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[u])DB.personal_notif[u]=[];DB.personal_notif[u].unshift({msg,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);};
 
 // ===== AD: HOMEWORK (with assign) =====
 const adHW=c=>{_hwMcq=[];_hwEssay=[];c.innerHTML=`<div class="card"><h4>📝 Tạo bài tập</h4><input id="hwn" placeholder="Tên"><div class="form-row"><input id="hws" type="datetime-local" placeholder="Bắt đầu"><input id="hwe" type="datetime-local" placeholder="Kết thúc"></div><div class="form-row"><input id="hwt" type="number" value="30" placeholder="Phút"><input id="hwslot" type="number" value="1" placeholder="Slot"></div><h5>TN</h5><div id="hw-mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addHWMCQ()">+ TN</button><h5>TL</h5><div id="hw-essay-list"></div><button class="btn btn-sm btn-gold" onclick="addHWEssay()">+ TL</button><button class="btn btn-sm btn-green" onclick="saveHW()">💾</button></div><h4>DS</h4>${(DB.hw_list||[]).map((h,i)=>`<div class="card flex-between"><div><b>${h.n}</b><br><small>TN:${(h.mcq||[]).length} TL:${(h.essay||[]).length} | ${h.t||30}ph | Slot:${h.slot||1}<br>Giao: ${(h.assignedTo||[]).length||0} HV</small></div><div><button class="btn btn-xs btn-blue" onclick="showMod('assignHW',{index:${i}})">👥 Giao</button><button class="btn btn-xs btn-gold" onclick="edHW(${i})">✏️</button><button class="btn btn-xs btn-blue" onclick="vwHW(${i})">👁</button><button class="btn btn-xs btn-red" onclick="delHW(${i})">🗑️</button></div></div>`).join('')}<br><button class="btn btn-sm btn-outline" onclick="vwSubs('hw')">📋 XEM BÀI NỘP</button>`;};
@@ -434,7 +434,11 @@ const navSt=pg=>{
     if(pg==='home'){
         m.innerHTML=`<div class="card" style="text-align:center"><h3>${U.loginCount<=1?t('welcome1',U.n):t('welcome2',U.n)}</h3></div><h4>📢 Thông báo</h4>`;
         (DB.notif_history||[]).slice(0,5).forEach(n=>m.innerHTML+=`<div class="card"><small>${n.date}</small><br>${n.msg}</div>`);
-        (DB.personal_notif?.[U.u]||[]).slice(0,5).forEach(n=>m.innerHTML+=`<div class="card"><small>${n.date}</small><br>${n.msg}</div>`);
+        (DB.personal_notif?.[U.u]||[]).slice(0,5).forEach((n,i)=>{
+    const isNew=n.read===false;
+    m.innerHTML+=`<div class="card" style="${isNew?'border-left:3px solid var(--accent);background:rgba(255,107,107,0.05)':''}"><div class="flex-between"><small>${n.date}</small>${isNew?'<span class="badge" style="position:static;display:inline-flex;font-size:8px;padding:2px 6px;border-radius:8px">MỚI</span>':''}</div>${n.msg}</div>`;
+    if(isNew){n.read=true;save('/personal_notif/'+U.u,DB.personal_notif[U.u]);}
+});
         if(d['2b_new']){d['2b_new']=false;save(`/data/${U.u}/2b_new`,false);}
     } else if(pg==='schedule'){
         const sk=DB.sked||{},now=new Date();
