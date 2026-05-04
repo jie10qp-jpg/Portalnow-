@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PORTAL NOW - V19 ULTIMATE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0f; --card: #12121a; --border: #252535;
+            --accent: #ff6b6b; --blue: #5b9bd5; --green: #4ecb71;
+            --gold: #e8b730; --red: #e84545; --text: #d0d0d8;
+            --sub: #7a7a8a; --r: 14px; --shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh;
+            line-height: 1.6; font-size: 14px; overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* LOGIN */
+        #pg-login {
+            min-height: 100vh; display: flex; justify-content: center;
+            align-items: center; padding: 20px;
+            background: radial-gradient(ellipse at top, #1a1a2e, #0a0a0f);
+        }
+        .login-box {
+            background: var(--card); padding: 40px 30px; border-radius: 20px;
+            width: 100%; max-width: 400px; text-align: center;
+            border: 1px solid var(--border); box-shadow: var(--shadow);
+        }
+        .login-box .logo { font-size: 40px; margin-bottom: 5px; }
+        .login-box h2 { color: #fff; font-size: 22px; margin-bottom: 2px; font-weight: 700; letter-spacing: -0.5px; }
+        .login-box .sub { color: var(--sub); font-size: 11px; margin-bottom: 25px; }
+
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 42px; }
+        .pw-wrap .eye {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; font-size: 18px; user-select: none; color: var(--sub);
+            transition: color 0.2s;
+        }
+        .pw-wrap .eye:hover { color: var(--accent); }
+
+        input, textarea, select {
+            width: 100%; padding: 11px 14px; margin: 5px 0;
+            background: #0a0a0f; border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text); font-size: 13px;
+            font-family: inherit; transition: all 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(255,107,107,0.08);
+        }
+        textarea { min-height: 80px; resize: vertical; }
+
+        .btn {
+            width: 100%; padding: 12px 16px; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: 600; font-size: 13px;
+            margin: 4px 0; transition: all 0.2s; letter-spacing: 0.2px;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-accent { background: var(--accent); color: #fff; }
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-gold { background: var(--gold); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-outline { background: transparent; color: var(--blue); border: 1px solid var(--blue); }
+        .btn-sm { width: auto; padding: 6px 14px; font-size: 11px; border-radius: 8px; }
+        .btn-xs { width: auto; padding: 4px 10px; font-size: 10px; border-radius: 6px; }
+
+        .link-row { display: flex; justify-content: center; margin-top: 14px; font-size: 11px; gap: 20px; }
+        .link-row a { color: var(--blue); cursor: pointer; text-decoration: none; }
+
+        .msg { padding: 10px 12px; margin: 8px 0; border-radius: 8px; font-size: 11px; text-align: left; }
+        .msg-info { background: #1a2535; color: #8cb8e0; border-left: 3px solid var(--blue); }
+        .msg-err { background: #2a1515; color: #e88888; border-left: 3px solid var(--red); }
+        .msg-ok { background: #152515; color: #88e888; border-left: 3px solid var(--green); }
+
+        /* HEADER */
+        .header {
+            background: rgba(18,18,26,0.95); backdrop-filter: blur(10px);
+            padding: 12px 18px; display: flex; justify-content: space-between;
+            align-items: center; position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .header h3 { font-size: 14px; color: #fff; font-weight: 700; }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 14px; padding-bottom: 85px; }
+
+        .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+        .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 6px; }
+        .menu-card {
+            background: var(--card); padding: 14px 8px; border-radius: var(--r);
+            text-align: center; cursor: pointer; border: 1px solid var(--border);
+            transition: all 0.2s; font-size: 10px; font-weight: 600;
+        }
+        .menu-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,107,107,0.1); }
+        .menu-card .icon { font-size: 20px; display: block; margin-bottom: 3px; }
+        .menu-card.sel { border-color: var(--green); background: #152515; }
+
+        .card {
+            background: var(--card); padding: 16px; border-radius: var(--r);
+            margin-bottom: 10px; border: 1px solid var(--border);
+        }
+        .card h4 { margin-bottom: 6px; color: var(--accent); font-size: 13px; font-weight: 700; }
+        .card h5 { color: var(--sub); font-size: 11px; margin-bottom: 4px; }
+
+        .form-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .form-row > * { flex: 1; min-width: 80px; }
+        .label { font-size: 10px; color: var(--sub); margin-bottom: 1px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #0a0a0f; color: var(--sub); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+        tr:hover td { background: rgba(255,255,255,0.015); }
+
+        .tag { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 9px; font-weight: 600; }
+        .tag-on { background: #152515; color: var(--green); }
+        .tag-off { background: #2a1515; color: var(--red); }
+
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--card); padding: 22px; border-radius: var(--r);
+            z-index: 300; width: 94%; max-width: 440px; max-height: 85vh;
+            overflow-y: auto; border: 1px solid var(--border); display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        }
+        .modal.active { display: block; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 250; display: none; }
+        .overlay.active { display: block; }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(18,18,26,0.95); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 6px 4px; border-top: 1px solid var(--border); z-index: 100;
+        }
+        .bottom-nav .ni {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--sub); font-size: 9px; cursor: pointer;
+            padding: 5px 8px; border-radius: 10px; transition: all 0.2s;
+            text-decoration: none; position: relative; flex: 1;
+        }
+        .bottom-nav .ni.ac { color: var(--accent); }
+        .bottom-nav .ni.me-tab { color: var(--gold); font-weight: 700; }
+        .bottom-nav .ni.me-tab.ac { color: var(--gold); background: rgba(232,183,48,0.1); }
+        .bottom-nav .ni .ni-icon { font-size: 18px; }
+        .badge {
+            position: absolute; top: -4px; right: 15%; background: var(--red);
+            color: #fff; border-radius: 50%; width: 16px; height: 16px;
+            font-size: 9px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .avatar-section { text-align: center; padding: 10px 0; }
+        .avatar-img { font-size: 50px; cursor: pointer; transition: transform 0.2s; }
+        .avatar-img:hover { transform: scale(1.1); }
+        .icon-picker { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+        .icon-picker span { font-size: 22px; cursor: pointer; padding: 5px; border-radius: 8px; transition: all 0.2s; }
+        .icon-picker span:hover { background: rgba(255,107,107,0.2); }
+        .icon-picker span.sel { background: rgba(255,107,107,0.4); }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .exam-block { border: 1px solid var(--border); padding: 12px; border-radius: 10px; margin: 8px 0; background: #0a0a0f; }
+        .question-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .question-nav span {
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 600;
+            background: var(--card); border: 1px solid var(--border); transition: all 0.2s;
+        }
+        .question-nav span.done { background: var(--green); color: #000; border-color: var(--green); }
+        .question-nav span.flagged { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,183,48,0.3); }
+        .question-nav span.current { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,107,107,0.3); }
+
+        .timer {
+            font-size: 16px; font-weight: 700; color: var(--accent);
+            text-align: center; padding: 8px; background: var(--card);
+            border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .timer.warning { animation: pulse 1s infinite; color: var(--red); }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .rich-toolbar { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
+        .rich-toolbar button {
+            padding: 4px 8px; font-size: 11px; cursor: pointer;
+            background: var(--card); color: var(--text); border: 1px solid var(--border);
+            border-radius: 4px; transition: all 0.15s;
+        }
+        .rich-toolbar button:hover { border-color: var(--accent); }
+        .rich-toolbar button.act { background: var(--accent); color: #fff; }
+
+        @media (max-width: 500px) {
+            .grid2 { grid-template-columns: repeat(2, 1fr); }
+            .login-box { padding: 28px 18px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="ovl" onclick="clsMod()"></div>
+<div class="modal" id="mod"></div>
+
+<!-- LOGIN -->
+<div id="pg-login">
+    <div class="login-box">
+        <div class="logo">✦</div>
+        <h2>PORTAL NOW</h2>
+        <div class="sub" id="login-sub">Hệ thống quản lý học tập</div>
+        <div id="login-msg"></div>
+        <input type="text" id="un" placeholder="Tên đăng nhập" autocomplete="off">
+        <div class="pw-wrap">
+            <input type="password" id="pw" placeholder="Mật khẩu">
+            <span class="eye" onclick="togglePW('pw')">👁</span>
+        </div>
+        <div class="pw-wrap" id="pin-wrap" style="display:none">
+            <input type="password" id="pin" placeholder="Mã PIN (Admin)" maxlength="4">
+            <span class="eye" onclick="togglePW('pin')">👁</span>
+        </div>
+        <button class="btn btn-accent" onclick="doLogin()">ĐĂNG NHẬP</button>
+        <div class="link-row">
+            <a onclick="showMod('forgot')">Quên mật khẩu</a>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN -->
+<div id="pg-admin" class="hidden">
+    <div class="header"><h3>⚙️ ADMIN PANEL</h3><button class="btn btn-sm btn-red" onclick="logout()">THOÁT</button></div>
+    <div class="container">
+        <div class="grid2">
+            <div class="menu-card" onclick="navAd('schedule')"><span class="icon">📅</span>Lịch học</div>
+            <div class="menu-card" onclick="navAd('notif')"><span class="icon">📢</span>Thông báo</div>
+            <div class="menu-card" onclick="navAd('homework')"><span class="icon">📝</span>Bài tập</div>
+            <div class="menu-card" onclick="navAd('exam')"><span class="icon">📄</span>Thi cử</div>
+            <div class="menu-card" onclick="navAd('students')"><span class="icon">👥</span>Học viên</div>
+            <div class="menu-card" onclick="navAd('progress')"><span class="icon">📋</span>Chương trình</div>
+            <div class="menu-card" onclick="navAd('fee')"><span class="icon">💰</span>Học phí</div>
+            <div class="menu-card" onclick="navAd('results')"><span class="icon">📊</span>Kết quả</div>
+            <div class="menu-card" onclick="navAd('support')"><span class="icon">🆘</span>Hỗ trợ <span id="sup-badge" style="display:none;color:red">●</span></div>
+            <div class="menu-card" onclick="navAd('settings')"><span class="icon">🔧</span>Cài đặt</div>
+        </div>
+        <div id="ad-content"></div>
+    </div>
+</div>
+
+<!-- STUDENT -->
+<div id="pg-hv" class="hidden">
+    <div class="header"><h3 id="hv-title">📚</h3><div></div></div>
+    <div class="container" id="hv-main"></div>
+    <div class="bottom-nav" id="bnav">
+        <div class="ni ac" onclick="navSt('home')"><span class="ni-icon">🏠</span><span id="tt-home">Trang chủ</span></div>
+        <div class="ni" onclick="navSt('schedule')"><span class="ni-icon">📅</span><span id="tt-sched">Lịch học</span></div>
+        <div class="ni me-tab ac" onclick="navSt('me')"><span class="ni-icon">👤</span><span id="tt-me">Tôi</span></div>
+        <div class="ni" onclick="navSt('homework')"><span class="ni-icon">📝</span><span id="tt-hw">Bài tập</span><span class="badge" id="hw-badge" style="display:none">!</span></div>
+        <div class="ni" onclick="navSt('exam')"><span class="ni-icon">📄</span><span id="tt-exam">Bài thi</span><span class="badge" id="ex-badge" style="display:none">!</span></div>
+    </div>
+</div>
+
+<script>
+// ===== FIREBASE =====
+const fbConfig = {
+    apiKey: "AIzaSyB2GSKsrFcLlf3IY8TxRH6tXhWyg3Jh-Io",
+    authDomain: "portalnow-16452.firebaseapp.com",
+    databaseURL: "https://portalnow-16452-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "portalnow-16452"
+};
+let dbRef;
+try { firebase.initializeApp(fbConfig); dbRef = firebase.database(); } catch(e) { alert('Firebase error: '+e.message); }
+
+const H = t => CryptoJS.SHA256(t).toString();
+let U = null, DB = {}, stm = null, timerInterval = null, timeLeft = 0;
+let _mcq=[],_essay=[],_hwMcq=[],_hwEssay=[];
+let currentLang = 'vi';
+
+// ===== TRANSLATIONS =====
+const LANG = {
+    vi: {
+        loginSub:'Hệ thống quản lý học tập',user:'Tên đăng nhập',pw:'Mật khẩu',pin:'Mã PIN (Admin)',
+        login:'ĐĂNG NHẬP',forgot:'Quên mật khẩu',logout:'ĐĂNG XUẤT TÀI KHOẢN',
+        home:'Trang chủ',sched:'Lịch học',me:'Tôi',hw:'Bài tập',exam:'Bài thi',
+        welcome1:'🎉 Xin chào học viên {0}, chào mừng bạn đã đến với chúng tôi!',
+        welcome2:'👋 Xin chào {0}!',
+        support:'Hỗ trợ/Khiếu nại',payTitle:'💳 Đóng học phí',
+        payInfo:'Thông tin chuyển khoản',payWait:'⏳ Xin đợi ít nhất 1 tiếng để admin cập nhật',
+        sureSubmit:'Bạn chắc chắn muốn nộp bài?',checkUnanswered:'Bạn hãy kiểm tra kĩ những câu chưa làm nhé!',
+        autoSubmit:'⏰ Hết giờ! Bài đã được tự động nộp.',saveAv:'💾 Lưu avatar',
+        fullName:'Họ và tên',class_:'Lớp',language:'Ngoại ngữ'
+    },
+    en: {
+        loginSub:'Learning Management System',user:'Username',pw:'Password',pin:'Admin PIN',
+        login:'LOGIN',forgot:'Forgot Password',logout:'LOG OUT',
+        home:'Home',sched:'Schedule',me:'Profile',hw:'Homework',exam:'Exam',
+        welcome1:'🎉 Welcome {0}, glad to have you with us!',
+        welcome2:'👋 Hello {0}!',
+        support:'Support/Complaint',payTitle:'💳 Pay Tuition',
+        payInfo:'Bank Transfer Info',payWait:'⏳ Please wait at least 1 hour for admin update',
+        sureSubmit:'Are you sure to submit?',checkUnanswered:'Please check unanswered questions!',
+        autoSubmit:'⏰ Time up! Auto-submitted.',saveAv:'💾 Save Avatar',
+        fullName:'Full Name',class_:'Class',language:'Language'
+    }
+};
+function t(key,...args){
+    let str = (LANG[currentLang] && LANG[currentLang][key]) ? LANG[currentLang][key] : (LANG.vi[key]||key);
+    args.forEach((a,i)=>str=str.replace(`{${i}}`,a));
+    return str;
+}
+function applyLang(){
+    document.getElementById('login-sub').innerText = t('loginSub');
+    document.getElementById('un').placeholder = t('user');
+    document.getElementById('pw').placeholder = t('pw');
+    document.getElementById('pin').placeholder = t('pin');
+    document.querySelector('#pg-login .btn-accent').innerText = t('login');
+    document.querySelectorAll('.link-row a')[0].innerText = t('forgot');
+    const tt=['home','sched','me','hw','exam'];
+    ['tt-home','tt-sched','tt-me','tt-hw','tt-exam'].forEach((id,i)=>document.getElementById(id).innerText=t(tt[i]));
+}
+function setLang(l){
+    currentLang = l;
+    if(!DB.config)DB.config={};
+    DB.config.lang = l;
+    save('/config/lang',l);
+    applyLang();
+    if(U&&U.r==='hv') navSt('me');
+}
+
+// ===== HELPERS =====
+function MSG(t,c){
+    const el=document.getElementById('login-msg');
+    el.innerHTML=`<div class="msg ${c==='ok'?'msg-ok':c==='err'?'msg-err':'msg-info'}">${t}</div>`;
+    setTimeout(()=>el.innerHTML='',4000);
+}
+function SHOW(id){
+    document.querySelectorAll('body>div:not(.overlay):not(.modal)').forEach(d=>d.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+function logout(){ U=null; clearInterval(timerInterval); SHOW('pg-login'); document.getElementById('pin-wrap').style.display='none'; document.getElementById('pin').value=''; }
+function clsMod(){ document.getElementById('mod').classList.remove('active'); document.getElementById('ovl').classList.remove('active'); }
+function showMod(type){
+    const m=document.getElementById('mod'), o=document.getElementById('ovl');
+    o.classList.add('active'); m.classList.add('active');
+    if(type==='forgot') m.innerHTML=`<h4>🔑 ${t('forgot')}</h4><input id="fp-n" placeholder="${t('fullName')}"><input id="fp-c" placeholder="${t('class_')}"><input id="fp-e" placeholder="Email"><button class="btn btn-blue" onclick="subFP()">GỬI</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;
+    else if(type==='support') m.innerHTML=`<h4>💬 ${t('support')}</h4><input id="sp-n" placeholder="${t('fullName')}"><input id="sp-c" placeholder="${t('class_')}"><textarea id="sp-m" placeholder="Nội dung..."></textarea><button class="btn btn-blue" onclick="subSP()">GỬI</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;
+    else if(type==='pay'){
+        const fi = DB.config?.bankInfo||'Chưa có thông tin';
+        m.innerHTML=`<h4>${t('payTitle')}</h4><div class="card"><div style="white-space:pre-wrap">${fi}</div></div>
+            <div class="label">Tải ảnh (không bắt buộc)</div><input id="pay-img" type="file" accept="image/*">
+            <button class="btn btn-green" onclick="subPay()">GỬI XÁC NHẬN</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>
+            <p style="font-size:10px;color:var(--sub);margin-top:4px">${t('payWait')}</p>`;
+    }
+}
+function subFP(){ const n=document.getElementById('fp-n').value.trim(),c=document.getElementById('fp-c').value.trim(),e=document.getElementById('fp-e').value.trim(); if(!n||!c||!e){alert('Nhập đủ!');return;} if(!DB.pw_requests)DB.pw_requests=[]; DB.pw_requests.push({name:n,class:c,email:e,date:new Date().toLocaleString()}); save('/pw_requests',DB.pw_requests); clsMod(); alert('✅ Đã gửi!'); }
+function subSP(){ const n=document.getElementById('sp-n').value.trim(),c=document.getElementById('sp-c').value.trim(),m=document.getElementById('sp-m').value.trim(); if(!n||!m){alert('Nhập đủ!');return;} if(!DB.tickets)DB.tickets=[]; DB.tickets.push({name:n,class:c,msg:m,date:new Date().toLocaleString(),status:'open'}); save('/tickets',DB.tickets); clsMod(); alert('✅ Đã gửi!'); }
+function subPay(){
+    const fi=DB.config?.bankInfo||'';
+    if(!DB.payments)DB.payments=[];
+    const file=document.getElementById('pay-img').files[0];
+    if(file){
+        const reader=new FileReader();
+        reader.onload=function(e){
+            DB.payments.push({u:U.u,date:new Date().toLocaleString(),img:e.target.result,status:'pending',note:''});
+            save('/payments',DB.payments);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        DB.payments.push({u:U.u,date:new Date().toLocaleString(),img:'',status:'pending',note:''});
+        save('/payments',DB.payments);
+    }
+    clsMod(); alert('✅ Đã gửi! Vui lòng đợi admin xác nhận.');
+}
+function save(p,d){ dbRef.ref(p).set(d).catch(e=>console.error('Save:',e)); }
+function togglePW(id){ const el=document.getElementById(id); el.type=el.type==='password'?'text':'password'; }
+
+// ===== INIT DB =====
+function initDB(){
+    const code=prompt('🔐 Mã xác nhận (mặc định: RESET123):');
+    if(code!=='RESET123'&&code!==(DB.config?.resetCode||'RESET123')){alert('❌ Sai!');return;}
+    if(!confirm('⚠️ XÓA TẤT CẢ DỮ LIỆU?'))return;
+    const def={
+        admins:[{u:"ADMIN1",p:H("portalnow1"),pin:"2468"},{u:"ADMIN2",p:H("portalnow2"),pin:"2468"}],
+        hv:[],sked:{t:"Tuần 1",slots:[],isOpen:true,openTime:'',closeTime:'',history:[]},
+        exams:[],hw_list:[],submissions:[],data:{},notif_history:[],
+        personal_notif:{},tickets:[],pw_requests:[],payments:[],
+        config:{adminPin:"2468",resetCode:"RESET123",bankInfo:"STK: 123456789\nNGÂN HÀNG: ABC\nCHỦ TK: NGUYỄN VĂN A\nSố tiền: (xem trong mục học phí)\nNội dung: Họ tên - Lớp - Đóng HP",lang:'vi'},
+        shortcuts:[]
+    };
+    dbRef.ref('/').set(def).then(()=>{DB=def;currentLang='vi';applyLang();MSG('✅ Hệ thống đã sẵn sàng!','ok');});
+}
+function loadDB(){
+    dbRef.ref('/').once('value').then(s=>{
+        const d=s.val();
+        if(d){DB=d;if(!DB.config)DB.config={adminPin:"2468",resetCode:"RESET123",bankInfo:"",lang:'vi'};if(!DB.sked?.history)DB.sked=DB.sked||{t:"Tuần 1",slots:[],isOpen:true,openTime:'',closeTime:'',history:[]};if(!DB.pw_requests)DB.pw_requests=[];if(!DB.tickets)DB.tickets=[];if(!DB.personal_notif)DB.personal_notif={};if(!DB.payments)DB.payments=[];if(!DB.shortcuts)DB.shortcuts=[];
+        currentLang=DB.config?.lang||'vi';applyLang();MSG('✅ Sẵn sàng!','ok');} else initDB();
+    }).catch(()=>MSG('❌ Lỗi kết nối!','err'));
+}
+
+// ===== LOGIN =====
+let pendingAdmin=null;
+function doLogin(){
+    const un=document.getElementById('un').value.trim(),pw=document.getElementById('pw').value.trim();
+    if(!un||!pw){MSG('Nhập đủ thông tin!','err');return;}
+    const adm=(DB.admins||[]).find(a=>a.u===un);
+    if(adm&&(adm.p===H(pw)||adm.p===pw)){pendingAdmin=adm;document.getElementById('pin-wrap').style.display='block';document.getElementById('pin').focus();MSG('🔐 Nhập mã PIN','info');return;}
+    const st=(DB.hv||[]).find(h=>h.u===un);
+    if(st&&(st.p===H(pw)||st.p===pw)){U={r:'hv',...st};if(!U.avatar)U.avatar='👤';U.loginCount=(U.loginCount||0)+1;document.getElementById('hv-title').innerText=U.n;SHOW('pg-hv');navSt('home');return;}
+    MSG('❌ Sai tài khoản/mật khẩu!','err');
+}
+document.getElementById('pin').addEventListener('keyup',function(e){
+    if(this.value.length>=4){
+        const pin=this.value,cp=pendingAdmin?.pin||DB.config?.adminPin||'2468';
+        if(pin===cp){U={r:'admin',name:pendingAdmin.u};pendingAdmin=null;document.getElementById('pin-wrap').style.display='none';this.value='';SHOW('pg-admin');navAd('schedule');}
+        else{MSG('❌ Sai PIN!','err');this.value='';}
+    }
+});
+
+// ===== ADMIN NAVIGATION =====
+function navAd(pg){
+    const c=document.getElementById('ad-content');
+    const pages={schedule:adSchedule,notif:adNotif,homework:adHW,exam:adExam,students:adStudents,progress:adProgress,fee:adFee,results:adResults,support:adSupport,settings:adSettings};
+    if(pages[pg])pages[pg](c);
+    // Check support badge
+    const badge=document.getElementById('sup-badge');
+    const hasNew=(DB.payments||[]).some(p=>p.status==='pending')||(DB.tickets||[]).some(t=>t.status==='open')||(DB.pw_requests||[]).length>0;
+    badge.style.display=hasNew?'inline':'none';
+}
+
+function adSchedule(c){
+    const sk=DB.sked||{};
+    c.innerHTML=`<div class="card"><h4>📅 ${sk.t}</h4>
+        <div class="form-row"><div><div class="label">Tên tuần</div><input id="skt" value="${sk.t}"></div><div style="align-self:end"><button class="btn btn-sm btn-gold" onclick="svWeek()">💾</button></div></div>
+        <div class="form-row"><div><div class="label">Mở ĐK</div><input id="skot" type="datetime-local" value="${sk.openTime||''}"></div><div><div class="label">Đóng ĐK</div><input id="skct" type="datetime-local" value="${sk.closeTime||''}"></div></div>
+        <span class="tag ${sk.isOpen?'tag-on':'tag-off'}">${sk.isOpen?'MỞ':'KHÓA'}</span>
+        <button class="btn btn-sm btn-outline" onclick="tgSked()">${sk.isOpen?'Khóa':'Mở'}</button>
+        <hr style="border-color:var(--border);margin:8px 0">
+        <div class="form-row"><div><div class="label">Môn</div><input id="sln"></div><div><div class="label">Thứ</div><input id="sld"></div><div><div class="label">Giờ</div><input id="slt"></div><div><div class="label">Slot</div><input id="slc" type="number" value="10"></div></div>
+        <button class="btn btn-sm btn-green" onclick="addSl()">+ THÊM</button>
+        <button class="btn btn-sm btn-red" onclick="resetSl()">🔄 RESET (sang tuần mới)</button>
+        <button class="btn btn-sm btn-outline" onclick="saveHist()">📥 Lưu LS tuần cũ</button></div>`;
+    (sk.slots||[]).forEach((s,i)=>c.innerHTML+=`<div class="card"><div class="flex-between"><div><b>${s.n}</b> | ${s.d}-${s.ti} | ${(s.r||[]).length}/${s.c}</div>
+        <div><button class="btn btn-xs btn-gold" onclick="edSl(${i})">✏️</button><button class="btn btn-xs btn-red" onclick="delSl(${i})">🗑️</button></div></div>
+        <div style="font-size:10px;color:var(--sub)">HV: ${(s.r||[]).join(', ')||'Chưa có'}</div>
+        <button class="btn btn-xs btn-outline" onclick="editStReg(${i})">✏️ Sửa ĐK</button></div>`);
+    if(sk.history?.length){
+        c.innerHTML+=`<h4>📜 Lịch sử tuần</h4>`;
+        sk.history.forEach((h,i)=>c.innerHTML+=`<div class="card flex-between"><div><b>${h.t}</b><br><small>${h.date}</small></div><button class="btn btn-xs btn-red" onclick="delHist(${i})">🗑️</button></div>`);
+    }
+}
+function svWeek(){DB.sked.t=document.getElementById('skt').value;DB.sked.openTime=document.getElementById('skot').value;DB.sked.closeTime=document.getElementById('skct').value;save('/sked',DB.sked);alert('✅');navAd('schedule');}
+function tgSked(){DB.sked.isOpen=!DB.sked.isOpen;save('/sked',DB.sked);navAd('schedule');}
+function addSl(){if(!DB.sked.slots)DB.sked.slots=[];DB.sked.slots.push({n:document.getElementById('sln').value||'Môn',d:document.getElementById('sld').value||'?',ti:document.getElementById('slt').value||'?',c:parseInt(document.getElementById('slc').value)||10,r:[]});save('/sked/slots',DB.sked.slots);navAd('schedule');}
+function edSl(i){const s=DB.sked.slots[i];const n=prompt('Tên:',s.n),d=prompt('Thứ:',s.d),t=prompt('Giờ:',s.ti),c=prompt('Slot:',s.c);if(n)s.n=n;if(d)s.d=d;if(t)s.ti=t;if(c)s.c=parseInt(c);save('/sked/slots',DB.sked.slots);navAd('schedule');}
+function delSl(i){if(confirm('Xóa?')){DB.sked.slots.splice(i,1);save('/sked/slots',DB.sked.slots);navAd('schedule');}}
+function resetSl(){
+    if(!confirm('Reset lịch sang tuần mới? Lịch cũ sẽ được lưu vào lịch sử.'))return;
+    if(!DB.sked.history)DB.sked.history=[];
+    DB.sked.history.unshift({t:DB.sked.t,slots:JSON.parse(JSON.stringify(DB.sked.slots)),date:new Date().toLocaleString()});
+    const newWeekNum = (parseInt(DB.sked.t.replace(/\D/g,''))||1)+1;
+    DB.sked.t = 'Tuần '+newWeekNum;
+    DB.sked.slots=[];
+    save('/sked',DB.sked);
+    alert('✅ Đã chuyển sang '+DB.sked.t);
+    navAd('schedule');
+}
+function saveHist(){if(!DB.sked.history)DB.sked.history=[];DB.sked.history.unshift({t:DB.sked.t,slots:JSON.parse(JSON.stringify(DB.sked.slots)),date:new Date().toLocaleString()});save('/sked/history',DB.sked.history);alert('✅');navAd('schedule');}
+function delHist(i){if(confirm('Xóa?')){DB.sked.history.splice(i,1);save('/sked/history',DB.sked.history);navAd('schedule');}}
+function editStReg(i){
+    const s=DB.sked.slots[i];
+    const hvList=(DB.hv||[]).map(h=>`<option ${(s.r||[]).includes(h.u)?'selected':''} value="${h.u}">${h.n} (${h.u})</option>`).join('');
+    document.getElementById('ad-content').innerHTML=`<div class="card"><h4>✏️ Sửa ĐK: ${s.n}</h4>
+        <select id="reg-sel" multiple style="min-height:150px">${hvList}</select>
+        <button class="btn btn-sm btn-green" onclick="svStReg(${i})">💾</button>
+        <button class="btn btn-sm btn-outline" onclick="navAd('schedule')">←</button></div>`;
+}
+function svStReg(i){const sel=document.getElementById('reg-sel');const r=[];for(let o of sel.options)if(o.selected)r.push(o.value);DB.sked.slots[i].r=r;save('/sked/slots',DB.sked.slots);alert('✅');navAd('schedule');}
+
+// ===== NOTIF WITH RICH TEXT =====
+function adNotif(c){
+    c.innerHTML=`<div class="card"><h4>📢 Thông báo chung</h4>
+        <div class="rich-toolbar">
+            <button onclick="wrapTag('b')"><b>B</b></button><button onclick="wrapTag('i')"><i>I</i></button>
+            <button onclick="wrapTag('span style=color:red')">🔴</button><button onclick="wrapTag('span style=color:blue')">🔵</button>
+            <button onclick="wrapTag('span style=color:green')">🟢</button><button onclick="wrapTag('span style=font-size:1.2em')">A+</button>
+        </div>
+        <textarea id="nfg" onkeyup="checkShortcut()"></textarea><button class="btn btn-sm btn-blue" onclick="sendGN()">GỬI</button></div>
+        <div class="card"><h4>📨 Riêng</h4><select id="nft"><option value="">Chọn HV</option>${(DB.hv||[]).map(h=>`<option value="${h.u}">${h.n}</option>`).join('')}</select>
+        <textarea id="nfp"></textarea><button class="btn btn-sm btn-gold" onclick="sendPN()">GỬI</button></div>
+        <div class="card"><h4>⚡ Phím tắt</h4>
+        <div class="form-row"><div><input id="sc-key" placeholder="Kí tự"></div><div><textarea id="sc-val" placeholder="Nội dung"></textarea></div></div>
+        <button class="btn btn-sm btn-green" onclick="addSC()">+</button>
+        ${(DB.shortcuts||[]).map((s,i)=>`<div class="card flex-between"><div><b>${s.key}</b> → ${s.val}</div><button class="btn btn-xs btn-red" onclick="delSC(${i})">X</button></div>`).join('')}</div>
+        <h4>Lịch sử</h4>`+(DB.notif_history||[]).map((n,i)=>`<div class="card flex-between"><div><small>${n.date}</small><br><span>${n.msg}</span></div><button class="btn btn-xs btn-red" onclick="delNf(${i})">🗑️</button></div>`).join('');
+}
+function wrapTag(tag){
+    const ta=document.getElementById('nfg');
+    const s=ta.selectionStart,e=ta.selectionEnd;
+    const txt=ta.value.substring(s,e);
+    const openTag=tag.includes('=')?tag.split(' ')[0]+' '+tag.split(' ')[1]:tag;
+    ta.value=ta.value.substring(0,s)+`<${tag}>${txt||'text'}</${openTag.split(' ')[0].replace('<','')}>`+ta.value.substring(e);
+    ta.focus();
+}
+function checkShortcut(){const txt=document.getElementById('nfg').value;(DB.shortcuts||[]).forEach(s=>{if(txt.includes(s.key))document.getElementById('nfg').value=txt.replace(s.key,s.val);});}
+function addSC(){const k=document.getElementById('sc-key').value.trim(),v=document.getElementById('sc-val').value.trim();if(!k||!v)return;if(!DB.shortcuts)DB.shortcuts=[];DB.shortcuts.push({key:k,val:v});save('/shortcuts',DB.shortcuts);navAd('notif');}
+function delSC(i){DB.shortcuts.splice(i,1);save('/shortcuts',DB.shortcuts);navAd('notif');}
+function sendGN(){const m=document.getElementById('nfg').value.trim();if(!m)return;if(!DB.notif_history)DB.notif_history=[];DB.notif_history.unshift({msg:m,date:new Date().toLocaleString()});(DB.hv||[]).forEach(h=>{if(!DB.data[h.u])DB.data[h.u]={};DB.data[h.u]['2b_new']=true;});save('/notif_history',DB.notif_history);navAd('notif');}
+function sendPN(){const t=document.getElementById('nft').value,m=document.getElementById('nfp').value.trim();if(!t||!m)return;if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[t])DB.personal_notif[t]=[];DB.personal_notif[t].push({msg:m,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);alert('✅');navAd('notif');}
+function delNf(i){DB.notif_history.splice(i,1);save('/notif_history',DB.notif_history);navAd('notif');}
+
+// ===== HOMEWORK WITH TIMER =====
+function adHW(c){
+    _hwMcq=[];_hwEssay=[];
+    c.innerHTML=`<div class="card"><h4>📝 Tạo bài tập</h4>
+        <input id="hwn" placeholder="Tên"><div class="form-row"><div><div class="label">Bắt đầu</div><input id="hws" type="datetime-local"></div><div><div class="label">Kết thúc</div><input id="hwe" type="datetime-local"></div></div>
+        <div class="form-row"><div><div class="label">Phút</div><input id="hwt" type="number" value="30"></div><div><div class="label">Slot</div><input id="hwslot" type="number" value="1"></div></div>
+        <h5>TN</h5><div id="hw-mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addHWMCQ()">+ TN</button>
+        <h5>TL</h5><div id="hw-essay-list"></div><button class="btn btn-sm btn-gold" onclick="addHWEssay()">+ TL</button>
+        <button class="btn btn-sm btn-green" onclick="saveHW()">💾</button></div>
+        <h4>DS</h4>`+(DB.hw_list||[]).map((h,i)=>`<div class="card flex-between"><div><b>${h.n}</b><br><small>TN:${(h.mcq||[]).length} TL:${(h.essay||[]).length} | ${h.t||30}ph | Slot:${h.slot||1}</small></div>
+        <div><button class="btn btn-xs btn-gold" onclick="edHW(${i})">✏️</button><button class="btn btn-xs btn-blue" onclick="vwHW(${i})">👁</button><button class="btn btn-xs btn-red" onclick="delHW(${i})">🗑️</button></div></div>`).join('');
+    c.innerHTML+=`<br><button class="btn btn-sm btn-outline" onclick="vwSubs('hw')">📋 XEM BÀI NỘP</button>`;
+}
+function addHWMCQ(){_hwMcq.push({q:'',a:'',b:'',c:'',d:'',ans:'A',pt:1});renderHWMCQ();}
+function addHWEssay(){_hwEssay.push({q:'',pt:10});renderHWEssay();}
+function renderHWMCQ(){document.getElementById('hw-mcq-list').innerHTML=_hwMcq.map((m,i)=>`<div class="exam-block"><div class="flex-between"><h5>Câu ${i+1}</h5><div><input value="${m.pt}" onchange="_hwMcq[${i}].pt=parseFloat(this.value)||1" type="number" style="width:50px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_hwMcq.splice(${i},1);renderHWMCQ()">X</button></div><input value="${m.q}" onchange="_hwMcq[${i}].q=this.value" placeholder="Câu hỏi"><div class="form-row"><div>A:<input value="${m.a}" onchange="_hwMcq[${i}].a=this.value"></div><div>B:<input value="${m.b}" onchange="_hwMcq[${i}].b=this.value"></div></div><div class="form-row"><div>C:<input value="${m.c}" onchange="_hwMcq[${i}].c=this.value"></div><div>D:<input value="${m.d}" onchange="_hwMcq[${i}].d=this.value"></div></div><select onchange="_hwMcq[${i}].ans=this.value">${['A','B','C','D'].map(a=>`<option ${m.ans===a?'selected':''}>${a}</option>`).join('')}</select></div>`).join('');}
+function renderHWEssay(){document.getElementById('hw-essay-list').innerHTML=_hwEssay.map((e,i)=>`<div class="exam-block"><div class="flex-between"><h5>TL ${i+1}</h5><div><input value="${e.pt}" onchange="_hwEssay[${i}].pt=parseFloat(this.value)||10" type="number" style="width:50px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_hwEssay.splice(${i},1);renderHWEssay()">X</button></div><textarea onchange="_hwEssay[${i}].q=this.value" placeholder="Câu hỏi">${e.q||''}</textarea></div>`).join('');}
+function saveHW(){if(!DB.hw_list)DB.hw_list=[];DB.hw_list.push({n:document.getElementById('hwn').value||'BT',start:document.getElementById('hws').value,end:document.getElementById('hwe').value,t:parseInt(document.getElementById('hwt').value)||30,slot:parseInt(document.getElementById('hwslot').value)||1,mcq:JSON.parse(JSON.stringify(_hwMcq)),essay:JSON.parse(JSON.stringify(_hwEssay))});save('/hw_list',DB.hw_list);_hwMcq=[];_hwEssay=[];navAd('homework');}
+function edHW(i){const h=DB.hw_list[i];_hwMcq=JSON.parse(JSON.stringify(h.mcq||[]));_hwEssay=JSON.parse(JSON.stringify(h.essay||[]));document.getElementById('ad-content').innerHTML=`<div class="card"><h4>✏️ ${h.n}</h4><input id="hwn" value="${h.n}"><div class="form-row"><div><input id="hws" type="datetime-local" value="${h.start||''}"></div><div><input id="hwe" type="datetime-local" value="${h.end||''}"></div></div><div class="form-row"><div><input id="hwt" type="number" value="${h.t||30}"></div><div><input id="hwslot" type="number" value="${h.slot||1}"></div></div><h5>TN</h5><div id="hw-mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addHWMCQ()">+TN</button><h5>TL</h5><div id="hw-essay-list"></div><button class="btn btn-sm btn-gold" onclick="addHWEssay()">+TL</button><button class="btn btn-sm btn-green" onclick="updateHW(${i})">💾</button></div>`;renderHWMCQ();renderHWEssay();}
+function updateHW(i){const h=DB.hw_list[i];h.n=document.getElementById('hwn').value;h.start=document.getElementById('hws').value;h.end=document.getElementById('hwe').value;h.t=parseInt(document.getElementById('hwt').value)||30;h.slot=parseInt(document.getElementById('hwslot').value)||1;h.mcq=JSON.parse(JSON.stringify(_hwMcq));h.essay=JSON.parse(JSON.stringify(_hwEssay));save('/hw_list',DB.hw_list);_hwMcq=[];_hwEssay=[];alert('✅');navAd('homework');}
+function vwHW(i){const h=DB.hw_list[i];let t=`<div class="card"><h4>${h.n}</h4>`;if(h.mcq?.length){t+=`<h5>TN</h5>`;h.mcq.forEach((m,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${m.q}<br>A.${m.a} B.${m.b} C.${m.c} D.${m.d}<br><small style="color:#3fb950">ĐA:${m.ans}</small></div>`);}if(h.essay?.length){t+=`<h5>TL</h5>`;h.essay.forEach((e,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${e.q||''}</div>`);}t+=`</div><button class="btn btn-sm btn-outline" onclick="navAd('homework')">←</button>`;document.getElementById('ad-content').innerHTML=t;}
+function delHW(i){if(confirm('Xóa?')){DB.hw_list.splice(i,1);save('/hw_list',DB.hw_list);navAd('homework');}}
+function vwSubs(type){
+    const subs=(DB.submissions||[]).filter(s=>s.type===type);
+    document.getElementById('ad-content').innerHTML=`<h4>Bài nộp (${subs.length})</h4>`+subs.map(s=>{
+        let ans='';
+        try{const a=JSON.parse(s.con);if(a.mcq?.length)a.mcq.forEach((v,j)=>ans+=`TN${j+1}: ${v||'Chưa làm'}\n`);if(a.essay?.length)a.essay.forEach((v,j)=>ans+=`TL${j+1}: ${v||'Chưa làm'}\n`);}catch(e){ans=s.con;}
+        return `<div class="card"><b>${s.u}</b> - ${s.n}<br><small>${s.date} (${s.dur})</small><pre style="white-space:pre-wrap;background:#0a0a0f;padding:8px;border-radius:6px">${ans}</pre>${type==='exam'?`<div class="form-row"><div><input id="mcq-score-${s.u}-${s.n}" placeholder="Điểm TN"></div><div><input id="essay-score-${s.u}-${s.n}" placeholder="Điểm TL"></div></div><button class="btn btn-sm btn-green" onclick="scoreExam('${s.u}','${s.n}')">CHẤM</button>`:''}</div>`;
+    }).join('')+`<button class="btn btn-sm btn-outline" onclick="navAd('${type==='hw'?'homework':'exam'}')">←</button>`;
+}
+function scoreExam(u,n){
+    const mcq=document.getElementById(`mcq-score-${u}-${n}`).value;
+    const essay=document.getElementById(`essay-score-${u}-${n}`).value;
+    const sub=(DB.submissions||[]).find(s=>s.u===u&&s.n===n&&s.type==='exam');
+    if(sub){sub.mcqScore=mcq;sub.essayScore=essay;sub.scored=true;save('/submissions',DB.submissions);alert('✅ Đã chấm!');}
+    vwSubs('exam');
+}
+
+// ===== EXAM =====
+function adExam(c){
+    _mcq=[];_essay=[];
+    c.innerHTML=`<div class="card"><h4>📄 Tạo đề thi</h4>
+        <input id="exn" placeholder="Tên"><div class="form-row"><div><div class="label">Phút</div><input id="ext" type="number" value="45"></div><div><div class="label">MK</div><input id="exp"></div><div><div class="label">Slot</div><input id="exslot" type="number" value="1"></div></div>
+        <select id="exs"><option value="1">BẬT</option><option value="0">TẮT</option></select>
+        <h5>TN</h5><div id="mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addMCQ()">+TN</button>
+        <h5>TL</h5><div id="essay-list"></div><button class="btn btn-sm btn-gold" onclick="addEssay()">+TL</button>
+        <button class="btn btn-sm btn-green" onclick="saveExam()">💾</button></div>
+        <h4>DS</h4>`+(DB.exams||[]).map((x,i)=>`<div class="card flex-between"><div><b>${x.n}</b> <span class="tag ${x.st=='1'?'tag-on':'tag-off'}">${x.st=='1'?'MỞ':'KHÓA'}</span><br><small>TN:${(x.mcq||[]).length} TL:${(x.essay||[]).length} | ${x.t}ph | Slot:${x.slot||1}</small></div>
+        <div><button class="btn btn-xs btn-gold" onclick="edEx(${i})">✏️</button><button class="btn btn-xs btn-blue" onclick="vwEx(${i})">👁</button><button class="btn btn-xs btn-red" onclick="delEx(${i})">🗑️</button></div></div>`).join('');
+    c.innerHTML+=`<br><button class="btn btn-sm btn-outline" onclick="vwSubs('exam')">📋 XEM BÀI THI</button>`;
+}
+function addMCQ(){_mcq.push({q:'',a:'',b:'',c:'',d:'',ans:'A',pt:1});renderMCQ();}
+function addEssay(){_essay.push({q:'',pt:10});renderEssay();}
+function renderMCQ(){document.getElementById('mcq-list').innerHTML=_mcq.map((m,i)=>`<div class="exam-block"><div class="flex-between"><h5>Câu ${i+1}</h5><div><input value="${m.pt}" onchange="_mcq[${i}].pt=parseFloat(this.value)||1" type="number" style="width:50px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_mcq.splice(${i},1);renderMCQ()">X</button></div><input value="${m.q}" onchange="_mcq[${i}].q=this.value" placeholder="Câu hỏi"><div class="form-row"><div>A:<input value="${m.a}" onchange="_mcq[${i}].a=this.value"></div><div>B:<input value="${m.b}" onchange="_mcq[${i}].b=this.value"></div></div><div class="form-row"><div>C:<input value="${m.c}" onchange="_mcq[${i}].c=this.value"></div><div>D:<input value="${m.d}" onchange="_mcq[${i}].d=this.value"></div></div><select onchange="_mcq[${i}].ans=this.value">${['A','B','C','D'].map(a=>`<option ${m.ans===a?'selected':''}>${a}</option>`).join('')}</select></div>`).join('');}
+function renderEssay(){document.getElementById('essay-list').innerHTML=_essay.map((e,i)=>`<div class="exam-block"><div class="flex-between"><h5>TL ${i+1}</h5><div><input value="${e.pt}" onchange="_essay[${i}].pt=parseFloat(this.value)||10" type="number" style="width:50px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_essay.splice(${i},1);renderEssay()">X</button></div><textarea onchange="_essay[${i}].q=this.value" placeholder="Câu hỏi">${e.q||''}</textarea></div>`).join('');}
+function saveExam(){if(!DB.exams)DB.exams=[];DB.exams.push({n:document.getElementById('exn').value||'Đề',t:parseInt(document.getElementById('ext').value)||45,p:document.getElementById('exp').value,st:document.getElementById('exs').value,slot:parseInt(document.getElementById('exslot').value)||1,mcq:JSON.parse(JSON.stringify(_mcq)),essay:JSON.parse(JSON.stringify(_essay))});save('/exams',DB.exams);_mcq=[];_essay=[];navAd('exam');}
+function edEx(i){const x=DB.exams[i];_mcq=JSON.parse(JSON.stringify(x.mcq||[]));_essay=JSON.parse(JSON.stringify(x.essay||[]));document.getElementById('ad-content').innerHTML=`<div class="card"><h4>✏️ ${x.n}</h4><input id="exn" value="${x.n}"><div class="form-row"><div><input id="ext" type="number" value="${x.t}"></div><div><input id="exp" value="${x.p}"></div><div><input id="exslot" type="number" value="${x.slot||1}"></div></div><select id="exs"><option value="1" ${x.st=='1'?'selected':''}>BẬT</option><option value="0" ${x.st=='0'?'selected':''}>TẮT</option></select><h5>TN</h5><div id="mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addMCQ()">+TN</button><h5>TL</h5><div id="essay-list"></div><button class="btn btn-sm btn-gold" onclick="addEssay()">+TL</button><button class="btn btn-sm btn-green" onclick="updateExam(${i})">💾</button></div>`;renderMCQ();renderEssay();}
+function updateExam(i){const x=DB.exams[i];x.n=document.getElementById('exn').value;x.t=parseInt(document.getElementById('ext').value)||45;x.p=document.getElementById('exp').value;x.st=document.getElementById('exs').value;x.slot=parseInt(document.getElementById('exslot').value)||1;x.mcq=JSON.parse(JSON.stringify(_mcq));x.essay=JSON.parse(JSON.stringify(_essay));save('/exams',DB.exams);_mcq=[];_essay=[];alert('✅');navAd('exam');}
+function vwEx(i){const x=DB.exams[i];let t=`<div class="card"><h4>${x.n}</h4>`;if(x.mcq?.length){t+=`<h5>TN</h5>`;x.mcq.forEach((m,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${m.q}<br>A.${m.a} B.${m.b} C.${m.c} D.${m.d}<br><small style="color:#3fb950">ĐA:${m.ans}</small></div>`);}if(x.essay?.length){t+=`<h5>TL</h5>`;x.essay.forEach((e,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${e.q||''}</div>`);}t+=`</div><button class="btn btn-sm btn-outline" onclick="navAd('exam')">←</button>`;document.getElementById('ad-content').innerHTML=t;}
+function delEx(i){if(confirm('Xóa?')){DB.exams.splice(i,1);save('/exams',DB.exams);navAd('exam');}}
+
+// ===== STUDENTS, PROGRESS, FEE, RESULTS, SUPPORT, SETTINGS =====
+function adStudents(c){
+    c.innerHTML=`<div class="card"><h4>👥 Thêm HV</h4><input id="stn" placeholder="Họ tên"><input id="stl" placeholder="Lớp"><input id="stu" placeholder="Username"><input id="ste" placeholder="Email"><input id="stp" type="password" placeholder="Mật khẩu"><button class="btn btn-sm btn-green" onclick="addSt()">THÊM</button></div><h4>DS (${(DB.hv||[]).length})</h4>`+(DB.hv||[]).map((h,i)=>`<div class="card flex-between"><div><b>${h.n}</b> | ${h.l} | ${h.u}<br><small>${h.email||''}</small></div><div><button class="btn btn-xs btn-gold" onclick="edSt(${i})">✏️</button><button class="btn btn-xs btn-red" onclick="delSt(${i})">🗑️</button></div></div>`).join('');
+}
+function addSt(){const un=(document.getElementById('stu').value.trim()||'user')+'.portalnow';if((DB.hv||[]).find(h=>h.u===un))return alert('Tồn tại!');if(!DB.hv)DB.hv=[];DB.hv.push({n:document.getElementById('stn').value,l:document.getElementById('stl').value,u:un,email:document.getElementById('ste').value,p:H(document.getElementById('stp').value),avatar:'👤',loginCount:0});save('/hv',DB.hv);alert('✅ '+un);navAd('students');}
+function edSt(i){const h=DB.hv[i];const n=prompt('Tên:',h.n),l=prompt('Lớp:',h.l),e=prompt('Email:',h.email);if(n)h.n=n;if(l)h.l=l;if(e)h.email=e;save('/hv',DB.hv);navAd('students');}
+function delSt(i){if(confirm('Xóa?')){DB.hv.splice(i,1);save('/hv',DB.hv);navAd('students');}}
+
+function adProgress(c){
+    c.innerHTML='<h4>📋 Chương trình</h4>';
+    (DB.hv||[]).forEach(h=>{const d=DB.data?.[h.u]?.prog||'';c.innerHTML+=`<div class="card"><b>${h.n}</b><textarea id="prog-${h.u}" style="min-height:60px;margin-top:4px">${d}</textarea><button class="btn btn-sm btn-green" onclick="svProg('${h.u}')">💾</button></div>`;});
+}
+function svProg(u){if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};DB.data[u].prog=document.getElementById('prog-'+u).value;save(`/data/${u}`,DB.data[u]);alert('✅');navAd('progress');}
+
+function adFee(c){
+    c.innerHTML='<h4>💰 Học phí</h4>';
+    (DB.hv||[]).forEach(h=>{
+        const f=DB.data?.[h.u]?.fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};
+        c.innerHTML+=`<div class="card"><b>${h.n}</b> | Tổng:${(f.slots*f.rate+f.extra).toLocaleString()}đ | Nộp:${f.paid.toLocaleString()}đ | Nợ:<b style="color:#f85149">${(f.slots*f.rate+f.extra-f.paid).toLocaleString()}đ</b>
+            <div class="form-row"><div><input id="fs-${h.u}" type="number" value="${f.slots}" placeholder="Tiết"></div><div><input id="fr-${h.u}" type="number" value="${f.rate}" placeholder="Đơn giá"></div><div><input id="fe-${h.u}" type="number" value="${f.extra}" placeholder="Phí PS"></div><div><input id="fa-${h.u}" type="number" value="0" placeholder="Nộp thêm"></div></div>
+            <button class="btn btn-sm btn-green" onclick="svFee('${h.u}')">💾</button>
+            <h5>LS đóng</h5>${(f.logs||[]).map(l=>`<div><small>${l}</small></div>`).join('')||'Chưa có'}</div>`;
+    });
+    c.innerHTML+=`<div class="card"><h4>🏦 TT Ngân hàng</h4><textarea id="cfg-bank">${DB.config?.bankInfo||''}</textarea><button class="btn btn-sm btn-green" onclick="saveBank()">💾 Lưu</button></div>`;
+}
+function svFee(u){
+    if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};
+    const f=DB.data[u].fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};
+    f.slots=parseInt(document.getElementById('fs-'+u).value)||0;f.rate=parseInt(document.getElementById('fr-'+u).value)||0;f.extra=parseInt(document.getElementById('fe-'+u).value)||0;
+    const a=parseInt(document.getElementById('fa-'+u).value)||0;
+    if(a>0){f.paid+=a;f.logs.unshift(new Date().toLocaleDateString()+': +'+a.toLocaleString()+'đ');}
+    DB.data[u].fee=f;save(`/data/${u}`,DB.data[u]);alert('✅');navAd('fee');
+}
+function saveBank(){DB.config.bankInfo=document.getElementById('cfg-bank').value;save('/config',DB.config);alert('✅');navAd('fee');}
+
+function adResults(c){
+    c.innerHTML='<h4>📊 Kết quả</h4>';
+    (DB.hv||[]).forEach(h=>{
+        const d=DB.data?.[h.u]||{};
+        c.innerHTML+=`<div class="card"><b>${h.n}</b>
+            <div class="form-row"><input id="pn-${h.u}" placeholder="Tên"><input id="ps-${h.u}" placeholder="Điểm"><input id="pc-${h.u}" placeholder="NX"><select id="pt-${h.u}"><option value="tl">TL</option><option value="kt">KT</option></select></div>
+            <button class="btn btn-sm btn-green" onclick="addPt('${h.u}')">+</button>
+            <table>${(d.pts_tl||[]).concat(d.pts_kt||[]).map((p,i)=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td><td><button class="btn btn-xs btn-red" onclick="delPt('${h.u}','${i<(d.pts_tl||[]).length?'tl':'kt'}',${i<(d.pts_tl||[]).length?i:i-(d.pts_tl||[]).length})">X</button></td></tr>`).join('')}</table></div>`;
+    });
+}
+function addPt(u){if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};const t=document.getElementById('pt-'+u).value,it={n:document.getElementById('pn-'+u).value,s:document.getElementById('ps-'+u).value,cm:document.getElementById('pc-'+u).value};if(t==='tl'){if(!DB.data[u].pts_tl)DB.data[u].pts_tl=[];DB.data[u].pts_tl.push(it);}else{if(!DB.data[u].pts_kt)DB.data[u].pts_kt=[];DB.data[u].pts_kt.push(it);}save(`/data/${u}`,DB.data[u]);adResults(document.getElementById('ad-content'));}
+function delPt(u,t,i){if(t==='tl')DB.data[u].pts_tl.splice(i,1);else DB.data[u].pts_kt.splice(i,1);save(`/data/${u}`,DB.data[u]);adResults(document.getElementById('ad-content'));}
+
+function adSupport(c){
+    c.innerHTML=`<h4>🆘 Hỗ trợ</h4>
+        <h5>🔑 Quên MK</h5>${(DB.pw_requests||[]).map((r,i)=>`<div class="card flex-between"><div><b>${r.name}</b> | ${r.class} | ${r.email}<br><small>${r.date}</small></div><button class="btn btn-xs btn-red" onclick="delPWR(${i})">🗑️</button></div>`).join('')}
+        <h5>💬 Khiếu nại</h5>${(DB.tickets||[]).map((t,i)=>`<div class="card flex-between"><div><b>${t.name}</b> | ${t.class}<br>${t.msg}<br><small>${t.date}</small></div><div><button class="btn btn-xs btn-green" onclick="resT(${i})">✅</button><button class="btn btn-xs btn-red" onclick="delT(${i})">🗑️</button></div></div>`).join('')}
+        <h5>💳 Thanh toán</h5>${(DB.payments||[]).map((p,i)=>`<div class="card flex-between"><div><b>${p.u}</b><br>${p.img?`<img src="${p.img}" style="max-width:200px;max-height:200px;border-radius:8px">`:''}<br><small>${p.date} (${p.status})</small></div><div><textarea id="paynote-${i}" placeholder="Ghi chú">${p.note||''}</textarea><button class="btn btn-xs btn-green" onclick="confirmPay(${i})">✅ XN</button><button class="btn btn-xs btn-red" onclick="delPay(${i})">🗑️</button></div></div>`).join('')}`;
+}
+function delPWR(i){DB.pw_requests.splice(i,1);save('/pw_requests',DB.pw_requests);navAd('support');}
+function resT(i){DB.tickets[i].status='resolved';save('/tickets',DB.tickets);navAd('support');}
+function delT(i){DB.tickets.splice(i,1);save('/tickets',DB.tickets);navAd('support');}
+function confirmPay(i){
+    const note=document.getElementById('paynote-'+i).value;
+    DB.payments[i].status='confirmed';
+    DB.payments[i].note=note;
+    save('/payments',DB.payments);
+    // Add to student fee logs
+    const u=DB.payments[i].u;
+    if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};
+    const f=DB.data[u].fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};
+    f.logs.unshift(new Date().toLocaleDateString()+': Đã XN - '+note);
+    DB.data[u].fee=f;
+    save(`/data/${u}`,DB.data[u]);
+    alert('✅ Đã xác nhận!');
+    navAd('support');
+}
+function delPay(i){DB.payments.splice(i,1);save('/payments',DB.payments);navAd('support');}
+
+function adSettings(c){
+    c.innerHTML=`<div class="card"><h4>🔧 Cài đặt</h4>
+        <div class="label">PIN Admin</div><input id="cfg-pin" value="${DB.config?.adminPin||'2468'}" type="password" maxlength="4">
+        <div class="label">Mã Reset</div><input id="cfg-reset" value="${DB.config?.resetCode||'RESET123'}">
+        <button class="btn btn-sm btn-green" onclick="svCfg()">💾</button>
+        <hr style="border-color:var(--border);margin:8px 0">
+        <h5>Đổi MK Admin</h5><select id="cfg-adm"><option value="">Chọn</option>${(DB.admins||[]).map(a=>`<option value="${a.u}">${a.u}</option>`).join('')}</select>
+        <input id="cfg-npw" type="password" placeholder="MK mới"><button class="btn btn-sm btn-gold" onclick="chAdPW()">ĐỔI</button></div>`;
+}
+function svCfg(){DB.config.adminPin=document.getElementById('cfg-pin').value;DB.config.resetCode=document.getElementById('cfg-reset').value;save('/config',DB.config);alert('✅');navAd('settings');}
+function chAdPW(){const u=document.getElementById('cfg-adm').value,p=document.getElementById('cfg-npw').value;if(!u||!p)return;const a=(DB.admins||[]).find(a=>a.u===u);if(a){a.p=H(p);save('/admins',DB.admins);alert('✅');navAd('settings');}}
+
+// ===== STUDENT =====
+function navSt(pg){
+    const items=document.querySelectorAll('#bnav .ni');
+    items.forEach(el=>el.classList.remove('ac'));
+    const idx={home:0,schedule:1,me:2,homework:3,exam:4};
+    if(items[idx[pg]])items[idx[pg]].classList.add('ac');
+
+    const m=document.getElementById('hv-main');
+    if(!DB.data)DB.data={};
+    const d=DB.data[U.u]||{};
+    const pn=DB.personal_notif?.[U.u]||[];
+
+    if(pg==='home'){
+        m.innerHTML=`<div class="card" style="text-align:center"><h3>${U.loginCount<=1?t('welcome1',U.n):t('welcome2',U.n)}</h3></div>`;
+        m.innerHTML+=`<h4>📢 Thông báo</h4>`;
+        (DB.notif_history||[]).slice(0,5).forEach(n=>m.innerHTML+=`<div class="card" onclick="markRead('${U.u}','gen')"><small>${n.date}</small><br><span>${n.msg}</span></div>`);
+        pn.slice(0,5).forEach(n=>m.innerHTML+=`<div class="card"><small>${n.date}</small><br><span>${n.msg}</span></div>`);
+        if(d['2b_new']){d['2b_new']=false;save(`/data/${U.u}/2b_new`,false);checkBadges();}
+    } else if(pg==='schedule'){
+        const sk=DB.sked||{};
+        const now=new Date();
+        let canReg=sk.isOpen;
+        if(sk.openTime&&new Date(sk.openTime)>now)canReg=false;
+        if(sk.closeTime&&new Date(sk.closeTime)<now)canReg=false;
+        m.innerHTML=`<h4>📅 ${sk.t||'Lịch học'}</h4>`;
+        if(canReg){
+            m.innerHTML+=`<p style="font-size:11px;color:var(--sub)">⚠️ Cần đăng ký ít nhất 2 tiết</p><div class="grid3">`;
+            (sk.slots||[]).forEach((s,i)=>{
+                m.innerHTML+=`<div class="menu-card ${(s.r||[]).includes(U.u)?'sel':''}" onclick="tglR(${i})"><b>${s.n}</b><br>${s.d}<br>${s.ti}<br><small>${(s.r||[]).length}/${s.c}</small></div>`;
+            });
+            m.innerHTML+=`</div>`;
+        } else {m.innerHTML+=`<p>⛔ Không trong thời gian đăng ký</p>`;}
+        m.innerHTML+=`<h5>📌 Đã ĐK:</h5>`;
+        (sk.slots||[]).filter(s=>(s.r||[]).includes(U.u)).forEach(s=>m.innerHTML+=`<div class="card"><span>✅ ${s.n} - ${s.d} ${s.ti}</span></div>`);
+        if(!(sk.slots||[]).some(s=>(s.r||[]).includes(U.u)))m.innerHTML+=`<p>Chưa đăng ký</p>`;
+    } else if(pg==='homework'){
+        m.innerHTML=`<h4>📝 Bài tập</h4>`;
+        (DB.hw_list||[]).forEach((h,i)=>m.innerHTML+=`<div class="card"><b>${h.n}</b><br><small>${h.start||'?'}→${h.end||'?'} | ${h.t||30}ph | Slot:${h.slot||1}</small><br><button class="btn btn-sm btn-blue" onclick="stHW(${i})">LÀM</button><button class="btn btn-sm btn-outline" onclick="vwMySub('${h.n}')">📋 Đã nộp</button></div>`);
+    } else if(pg==='exam'){
+        m.innerHTML=`<h4>📄 Thi cử</h4>`;
+        (DB.exams||[]).filter(x=>x.st=='1').forEach((x,i)=>m.innerHTML+=`<div class="card"><b>${x.n}</b> <small>(${x.t}ph - Slot:${x.slot||1})</small><button class="btn btn-sm btn-gold" onclick="stEx(${i})">VÀO THI</button></div>`);
+        m.innerHTML+=`<h5>Đã thi:</h5>`;
+        (DB.submissions||[]).filter(s=>s.u===U.u&&s.type==='exam').forEach(s=>{
+            const ex=(DB.exams||[]).find(x=>x.n===s.n);
+            const canView=ex&&ex.st==='0'&&s.scored;
+            m.innerHTML+=`<div class="card"><b>${s.n}</b> - ${s.date}<br>
+                ${s.scored?`TN: ${s.mcqScore||'?'} | TL: ${s.essayScore||'?'}`:'Chờ chấm'}
+                ${canView?`<br><button class="btn btn-xs btn-outline" onclick="vwExRes('${s.n}')">👁 Xem</button>`:''}
+            </div>`;
+        });
+    } else if(pg==='me'){
+        const avs=['👤','👨‍🎓','👩‍🎓','🧑‍🎓','👨‍💻','👩‍💻','🧑‍💻','🦊','🐱','🐶','🐼','🐨','🦁','🐯','🐸','🐵','🐔','🦄','🐙','🦋'];
+        m.innerHTML=`<div class="avatar-section">
+            <div class="avatar-img" onclick="shAv()">${U.avatar||'👤'}</div>
+            <div id="avp" style="display:none" class="icon-picker">${avs.map(a=>`<span onclick="selAv('${a}')" class="${U.avatar===a?'sel':''}">${a}</span>`).join('')}</div>
+            <button class="btn btn-sm btn-outline" onclick="saveAv()" style="margin-top:4px">${t('saveAv')}</button>
+            <div style="margin-top:8px"><b>${t('fullName')}:</b> ${U.n}<br><b>${t('class_')}:</b> ${U.l||'Chưa có'}</div>
+            <div style="margin-top:8px"><b>${t('language')}:</b> 
+                <select onchange="setLang(this.value)" style="width:auto;display:inline">
+                    <option value="vi" ${currentLang==='vi'?'selected':''}>Tiếng Việt</option>
+                    <option value="zh-CN" ${currentLang==='zh-CN'?'selected':''}>简体中文</option>
+                    <option value="zh-TW" ${currentLang==='zh-TW'?'selected':''}>繁體中文</option>
+                    <option value="en" ${currentLang==='en'?'selected':''}>English</option>
+                    <option value="ja" ${currentLang==='ja'?'selected':''}>日本語</option>
+                    <option value="ko" ${currentLang==='ko'?'selected':''}>한국어</option>
+                </select>
+            </div>
+        </div>
+        <div class="card" onclick="vwScore()"><h5>📊 Kết quả</h5></div>
+        <div class="card" onclick="vwProg()"><h5>📋 Chương trình</h5></div>
+        <div class="card" onclick="vwFee()"><h5>💰 Học phí</h5></div>
+        <div class="card" onclick="showMod('support')"><h5>💬 ${t('support')}</h5></div>
+        <button class="btn btn-red" onclick="logout()" style="margin-top:8px">🚪 ${t('logout')}</button>`;
+    }
+}
+let selectedAvatar=null;
+function shAv(){document.getElementById('avp').style.display='flex';}
+function selAv(a){selectedAvatar=a;U.avatar=a;navSt('me');}
+function saveAv(){if(selectedAvatar){const h=DB.hv.find(h=>h.u===U.u);if(h){h.avatar=selectedAvatar;save('/hv',DB.hv);alert('✅');}}}
+function checkBadges(){
+    document.getElementById('hw-badge').style.display='none';
+    document.getElementById('ex-badge').style.display='none';
+    if(DB.data?.[U.u]?.['2c_new']){document.getElementById('hw-badge').style.display='flex';}
+    if(DB.data?.[U.u]?.['2f_new']){document.getElementById('ex-badge').style.display='flex';}
+}
+function vwScore(){const d=DB.data[U.u]||{};document.getElementById('hv-main').innerHTML=`<h4>📊 Bảng điểm</h4><h5>Tích lũy</h5><table>${(d.pts_tl||[]).map(p=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td></tr>`).join('')}</table><h5>Kiểm tra</h5><table>${(d.pts_kt||[]).map(p=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td></tr>`).join('')}</table><button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;}
+function vwProg(){const d=DB.data[U.u]||{};document.getElementById('hv-main').innerHTML=`<h4>📋 Chương trình</h4><div class="card" style="white-space:pre-wrap">${d.prog||'Chưa có'}</div><button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;}
+function vwFee(){
+    const f=DB.data?.[U.u]?.fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};
+    document.getElementById('hv-main').innerHTML=`<h4>💰 Học phí</h4>
+        <div class="card"><b>Tổng: ${(f.slots*f.rate+f.extra).toLocaleString()}đ</b><br>Đã nộp: ${f.paid.toLocaleString()}đ<br>Nợ: <b style="color:#f85149">${(f.slots*f.rate+f.extra-f.paid).toLocaleString()}đ</b>
+        <hr style="border-color:var(--border);margin:8px 0">
+        <div style="white-space:pre-wrap;font-size:11px">${DB.config?.bankInfo||''}</div>
+        <button class="btn btn-sm btn-gold" onclick="showMod('pay')">💳 ĐÓNG TIỀN</button></div>
+        <h5>LS đóng</h5>${(f.logs||[]).map(l=>`<div class="card"><small>${l}</small></div>`).join('')||'<p>Chưa có</p>'}
+        <button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;
+}
+
+function tglR(i){
+    const s=DB.sked.slots[i];
+    if(!s.r)s.r=[];
+    const idx=s.r.indexOf(U.u);
+    if(idx>-1){return;}
+    const myRegs=(DB.sked.slots||[]).filter(s=>(s.r||[]).includes(U.u));
+    if(myRegs.length<1){alert('⚠️ Cần đăng ký ít nhất 2 tiết! Vui lòng chọn thêm.');return;}
+    s.r.push(U.u);
+    save('/sked/slots',DB.sked.slots);navSt('schedule');
+}
+
+function stHW(i){const h=DB.hw_list[i];stm=new Date();timeLeft=(h.t||30)*60;startTimer();renderHWExam('hw',h);}
+function stEx(i){const x=DB.exams[i];const p=prompt('🔒 MK đề:');if(p!==x.p)return alert('❌ Sai!');stm=new Date();timeLeft=(x.t||45)*60;startTimer();renderHWExam('exam',x);}
+
+function startTimer(){
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{
+        timeLeft--;
+        const el=document.getElementById('timer');
+        if(el){
+            const m=Math.floor(timeLeft/60),s=timeLeft%60;
+            el.innerText=`⏱ ${m}:${s.toString().padStart(2,'0')}`;
+            if(timeLeft<60)el.classList.add('warning');
+            if(timeLeft<=0){clearInterval(timerInterval);autoSubmit();}
+        }
+    },1000);
+}
+function autoSubmit(){
+    alert(t('autoSubmit'));
+    const type=document.getElementById('exam-form')?'exam':'hw';
+    if(type==='hw')doSubmitHW();else doSubmitEx();
+}
+function renderHWExam(type,data){
+    const total=(data.mcq||[]).length+(data.essay||[]).length;
+    let h=`<div class="timer" id="timer">⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}</div>`;
+    h+=`<h4>${type==='hw'?'📝':'📄'} ${data.n}</h4>`;
+    if(total>0){
+        h+=`<div class="question-nav" id="q-nav">`;
+        for(let j=0;j<total;j++)h+=`<span onclick="goToQ(${j})" id="qbtn-${j}">${j+1}</span>`;
+        h+=`</div>`;
+    }
+    h+=`<form id="exam-form">`;
+    let qIdx=0;
+    if(data.mcq?.length)data.mcq.forEach((m,j)=>{
+        h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${m.pt}đ):</b> ${m.q}<br>
+            <label><input type="radio" name="mq${j}" value="A" onchange="markQ(${qIdx})"> A.${m.a}</label><br>
+            <label><input type="radio" name="mq${j}" value="B" onchange="markQ(${qIdx})"> B.${m.b}</label><br>
+            <label><input type="radio" name="mq${j}" value="C" onchange="markQ(${qIdx})"> C.${m.c}</label><br>
+            <label><input type="radio" name="mq${j}" value="D" onchange="markQ(${qIdx})"> D.${m.d}</label>
+            <br><button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;
+        qIdx++;
+    });
+    if(data.essay?.length)data.essay.forEach((e,j)=>{
+        h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${e.pt}đ):</b> ${e.q||''}<br><textarea id="es${j}" oninput="markQ(${qIdx})"></textarea>
+            <button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;
+        qIdx++;
+    });
+    h+=`</form><button class="btn btn-green" onclick="confirmSubmit('${type}','${data.n}')">📤 NỘP</button>`;
+    document.getElementById('hv-main').innerHTML=h;
+}
+function markQ(idx){const btn=document.getElementById('qbtn-'+idx);if(btn)btn.classList.add('done');}
+function flagQ(idx){const btn=document.getElementById('qbtn-'+idx);if(btn)btn.classList.toggle('flagged');}
+function goToQ(idx){document.getElementById('q-'+idx)?.scrollIntoView({behavior:'smooth'});}
+function confirmSubmit(type,n){
+    let unanswered=[];
+    const data=type==='hw'?DB.hw_list.find(h=>h.n===n):DB.exams.find(e=>e.n===n);
+    let qIdx=0;
+    if(data.mcq)data.mcq.forEach((_,i)=>{if(!document.querySelector(`input[name="mq${i}"]:checked`))unanswered.push(qIdx+1);qIdx++;});
+    if(data.essay)data.essay.forEach((_,i)=>{if(!document.getElementById(`es${i}`)?.value.trim())unanswered.push(qIdx+1);qIdx++;});
+    if(unanswered.length>0){
+        if(!confirm(t('checkUnanswered')+'\nCâu chưa làm: '+unanswered.join(', ')+'\n\n'+t('sureSubmit')))return;
+    } else {
+        if(!confirm(t('sureSubmit')))return;
+    }
+    clearInterval(timerInterval);
+    if(type==='hw')doSubmitHW();else doSubmitEx();
+}
+function doSubmitHW(){
+    const h=DB.hw_list.find(hw=>document.getElementById('exam-form'));
+    if(!h)return;
+    let ans={mcq:[],essay:[]};
+    if(h.mcq)h.mcq.forEach((_,i)=>{const sel=document.querySelector(`input[name="mq${i}"]:checked`);ans.mcq.push(sel?sel.value:'');});
+    if(h.essay)h.essay.forEach((_,i)=>{ans.essay.push(document.getElementById(`es${i}`)?.value||'');});
+    const d=Math.floor((new Date()-stm)/1000);
+    if(!DB.submissions)DB.submissions=[];
+    DB.submissions.push({u:U.u,type:'hw',n:h.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s'});
+    save('/submissions',DB.submissions);alert('✅');navSt('homework');
+}
+function doSubmitEx(){
+    const x=DB.exams.find(e=>document.getElementById('exam-form'));
+    if(!x)return;
+    let ans={mcq:[],essay:[]};
+    if(x.mcq)x.mcq.forEach((_,i)=>{const sel=document.querySelector(`input[name="mq${i}"]:checked`);ans.mcq.push(sel?sel.value:'');});
+    if(x.essay)x.essay.forEach((_,i)=>{ans.essay.push(document.getElementById(`es${i}`)?.value||'');});
+    // Auto-score MCQ
+    let mcqScore=0;
+    if(x.mcq)x.mcq.forEach((m,i)=>{if(ans.mcq[i]===m.ans)mcqScore+=m.pt;});
+    const d=Math.floor((new Date()-stm)/1000);
+    if(!DB.submissions)DB.submissions=[];
+    DB.submissions.push({u:U.u,type:'exam',n:x.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s',mcqScore:mcqScore,essayScore:0,scored:false});
+    save('/submissions',DB.submissions);
+    alert(`✅ Đã nộp!\nĐiểm trắc nghiệm: ${mcqScore}đ\nTự luận: Chờ admin chấm`);
+    navSt('exam');
+}
+function vwMySub(n){const ms=(DB.submissions||[]).filter(s=>s.u===U.u&&s.n===n&&s.type==='hw');document.getElementById('hv-main').innerHTML=`<h4>📋 ${n} (${ms.length})</h4>`+ms.map(s=>{let ans='';try{const a=JSON.parse(s.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=s.con;}return `<div class="card"><small>${s.date}</small><pre style="white-space:pre-wrap">${ans}</pre></div>`;}).join('')+`<button class="btn btn-outline" onclick="navSt('homework')">←</button>`;}
+function vwExRes(n){const sub=(DB.submissions||[]).find(s=>s.u===U.u&&s.n===n&&s.type==='exam');if(!sub)return;let ans='';try{const a=JSON.parse(sub.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=sub.con;}document.getElementById('hv-main').innerHTML=`<h4>📄 ${n}</h4><div class="card"><pre style="white-space:pre-wrap">${ans}</pre><small>${sub.date} | TN:${sub.mcqScore||'?'}đ | TL:${sub.essayScore||'?'}đ</small></div><button class="btn btn-outline" onclick="navSt('exam')">←</button>`;}
+
+loadDB();
+</script>
+</body>
+</html>
