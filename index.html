@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PORTAL NOW - V21</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --bg: #06060e; --card: #0e0e1a; --border: #1e1e35;
+            --accent: #ff6b6b; --blue: #5b9bd5; --green: #4ecb71;
+            --gold: #e8b730; --red: #e84545; --text: #c8c8d4; --sub: #6a6a7a;
+            --radius: 16px; --shadow: 0 4px 32px rgba(0,0,0,0.6);
+            --gradient: linear-gradient(135deg, #1a1a30, #0e0e1a);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg); color: var(--text); min-height: 100vh;
+            font-size: 13px; overflow-x: hidden; line-height: 1.5;
+            overscroll-behavior: none; touch-action: manipulation;
+        }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        #pg-login {
+            min-height: 100vh; display: flex; justify-content: center; align-items: center;
+            padding: 20px; background: linear-gradient(180deg, #0a0a1a 0%, #06060e 100%);
+        }
+        .login-box {
+            background: var(--gradient); padding: 36px 28px; border-radius: 24px;
+            width: 100%; max-width: 380px; text-align: center;
+            border: 1px solid var(--border); box-shadow: var(--shadow);
+        }
+        .login-box .logo { font-size: 44px; margin-bottom: 4px; }
+        .login-box h2 { color: #fff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+        .login-box .sub { color: var(--sub); font-size: 10px; margin: 4px 0 20px; }
+
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 40px; }
+        .pw-wrap .eye {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            cursor: pointer; font-size: 16px; color: var(--sub); z-index: 2;
+        }
+
+        input, textarea, select {
+            width: 100%; padding: 10px 12px; margin: 4px 0;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text); font-size: 12px; font-family: inherit;
+            transition: all 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,107,107,0.1);
+        }
+        textarea { min-height: 70px; resize: vertical; }
+
+        .btn {
+            width: 100%; padding: 11px 14px; border: none; border-radius: 10px;
+            cursor: pointer; font-weight: 600; font-size: 12px; margin: 3px 0;
+            transition: all 0.2s; letter-spacing: 0.3px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-accent { background: var(--accent); color: #fff; }
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-gold { background: var(--gold); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-outline { background: transparent; color: var(--blue); border: 1px solid var(--blue); }
+        .btn-sm { width: auto; padding: 5px 12px; font-size: 10px; border-radius: 8px; }
+        .btn-xs { width: auto; padding: 3px 8px; font-size: 9px; border-radius: 6px; }
+
+        .link-row { display: flex; justify-content: center; margin-top: 12px; font-size: 10px; gap: 16px; }
+        .link-row a { color: var(--blue); cursor: pointer; }
+
+        .msg { padding: 8px 10px; margin: 6px 0; border-radius: 8px; font-size: 10px; text-align: left; }
+        .msg-info { background: #1a2535; color: #8cb8e0; border-left: 3px solid var(--blue); }
+        .msg-err { background: #2a1515; color: #e88888; border-left: 3px solid var(--red); }
+        .msg-ok { background: #152515; color: #88e888; border-left: 3px solid var(--green); }
+
+        .header {
+            background: rgba(14,14,26,0.97); backdrop-filter: blur(12px);
+            padding: 10px 16px; display: flex; justify-content: space-between;
+            align-items: center; position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+        .header h3 { font-size: 13px; color: #fff; font-weight: 700; }
+        .container { max-width: 850px; margin: 0 auto; padding: 12px 12px 80px; }
+
+        .grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 6px; margin-top: 8px; }
+        .grid3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 5px; }
+        .menu-card {
+            background: var(--gradient); padding: 12px 6px; border-radius: var(--radius);
+            text-align: center; cursor: pointer; border: 1px solid var(--border);
+            font-size: 9px; font-weight: 600; transition: all 0.2s;
+        }
+        .menu-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+        .menu-card .icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+        .card {
+            background: var(--card); padding: 14px; border-radius: var(--radius);
+            margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .card h4 { margin-bottom: 5px; color: var(--accent); font-size: 12px; font-weight: 700; }
+        .card h5 { color: var(--sub); font-size: 10px; margin-bottom: 3px; }
+
+        .form-row { display: flex; gap: 5px; flex-wrap: wrap; }
+        .form-row>* { flex: 1; min-width: 60px; }
+        .label { font-size: 9px; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: rgba(0,0,0,0.3); color: var(--sub); font-size: 9px; text-transform: uppercase; }
+
+        .tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 8px; font-weight: 600; }
+        .tag-on { background: #152515; color: var(--green); }
+        .tag-off { background: #2a1515; color: var(--red); }
+        .tag-blue { background: #151a2a; color: var(--blue); }
+
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--card); padding: 20px; border-radius: var(--radius);
+            z-index: 300; width: 92%; max-width: 420px; max-height: 82vh;
+            overflow-y: auto; border: 1px solid var(--border); display: none;
+            box-shadow: var(--shadow);
+        }
+        .modal.active { display: block; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 250; display: none; }
+        .overlay.active { display: block; }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(14,14,26,0.97); backdrop-filter: blur(12px);
+            display: flex; justify-content: space-around; padding: 4px 2px;
+            border-top: 1px solid var(--border); z-index: 100;
+        }
+        .bottom-nav .ni {
+            display: flex; flex-direction: column; align-items: center;
+            color: var(--sub); font-size: 8px; cursor: pointer; padding: 4px 6px;
+            border-radius: 8px; text-decoration: none; flex: 1; transition: all 0.2s;
+        }
+        .bottom-nav .ni.ac { color: var(--accent); }
+        .bottom-nav .ni.me-tab { color: var(--gold); font-weight: 700; }
+        .bottom-nav .ni .ni-icon { font-size: 16px; }
+        .badge {
+            position: absolute; top: -3px; right: 12%; background: var(--red);
+            color: #fff; border-radius: 50%; width: 14px; height: 14px;
+            font-size: 8px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .avatar-section { text-align: center; padding: 8px 0; }
+        .avatar-img { font-size: 44px; cursor: pointer; }
+        .icon-picker { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
+        .icon-picker span { font-size: 20px; cursor: pointer; padding: 4px; border-radius: 8px; }
+        .icon-picker span.sel { background: rgba(255,107,107,0.3); }
+
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .exam-block { border: 1px solid var(--border); padding: 10px; border-radius: 10px; margin: 6px 0; background: rgba(0,0,0,0.2); }
+        .question-nav { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+        .question-nav span {
+            width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: 600;
+            background: var(--card); border: 1px solid var(--border);
+        }
+        .question-nav span.done { background: var(--green); color: #000; }
+        .question-nav span.flagged { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,183,48,0.3); }
+
+        .timer {
+            font-size: 14px; font-weight: 700; color: var(--accent); text-align: center;
+            padding: 6px; background: var(--card); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--border);
+        }
+        .timer.warning { animation: pulse 1s infinite; color: var(--red); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+        .rich-toolbar { display: flex; gap: 3px; margin-bottom: 3px; flex-wrap: wrap; }
+        .rich-toolbar button {
+            padding: 3px 6px; font-size: 10px; cursor: pointer;
+            background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 4px;
+        }
+
+        .notif-btn { cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+        .notif-btn:hover { background: rgba(255,255,255,0.1); }
+
+        @media(max-width:500px) {
+            .grid2 { grid-template-columns: repeat(3, 1fr); }
+            .login-box { padding: 24px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="ovl" onclick="clsMod()"></div>
+<div class="modal" id="mod"></div>
+
+<div class="overlay" id="ovl" onclick="clsMod()"></div>
+<div class="modal" id="mod"></div>
+
+<!-- LOGIN -->
+<div id="pg-login">
+    <div class="login-box">
+        <div class="logo">✦</div>
+        <h2>PORTAL NOW</h2>
+        <div class="sub" id="login-sub">Hệ thống quản lý học tập</div>
+        <div id="login-msg"></div>
+        <input type="text" id="un" placeholder="Tên đăng nhập" autocomplete="off">
+        <div class="pw-wrap">
+            <input type="password" id="pw" placeholder="Mật khẩu">
+            <span class="eye" onclick="togglePW('pw')">👁</span>
+        </div>
+        <div class="pw-wrap" id="pin-wrap" style="display:none">
+            <input type="password" id="pin" placeholder="••••" maxlength="4">
+            <span class="eye" onclick="togglePW('pin')">👁</span>
+        </div>
+        <button class="btn btn-accent" onclick="doLogin()">ĐĂNG NHẬP</button>
+        <div class="link-row">
+            <a onclick="showMod('forgot')">Quên mật khẩu</a>
+            <a onclick="showMod('register')">Đăng ký</a>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN -->
+<div id="pg-admin" class="hidden">
+    <div class="header"><h3>⚙️ ADMIN PANEL</h3><button class="btn btn-sm btn-red" onclick="logout()">THOÁT</button></div>
+    <div class="container">
+        <div class="grid2" id="ad-menu"></div>
+        <div id="ad-content"></div>
+    </div>
+</div>
+
+<!-- STUDENT -->
+<div id="pg-hv" class="hidden">
+    <div class="header"><h3 id="hv-title">📚</h3><div></div></div>
+    <div class="container" id="hv-main"></div>
+    <div class="bottom-nav" id="bnav">
+        <div class="ni ac" onclick="navSt('home')"><span class="ni-icon">🏠</span><span id="tt-home">Trang chủ</span></div>
+        <div class="ni" onclick="navSt('schedule')"><span class="ni-icon">📅</span><span id="tt-sched">Lịch học</span></div>
+        <div class="ni" onclick="navSt('me')"><span class="ni-icon">👤</span><span id="tt-me">Tôi</span></div>
+        <div class="ni" onclick="navSt('homework')"><span class="ni-icon">📝</span><span id="tt-hw">Bài tập</span><span class="badge" id="hw-badge" style="display:none">!</span></div>
+        <div class="ni" onclick="navSt('exam')"><span class="ni-icon">📄</span><span id="tt-exam">Bài thi</span><span class="badge" id="ex-badge" style="display:none">!</span></div>
+    </div>
+</div>
+
+<script>
+// ===== CORE =====
+const fbConfig={apiKey:"AIzaSyB2GSKsrFcLlf3IY8TxRH6tXhWyg3Jh-Io",authDomain:"portalnow-16452.firebaseapp.com",databaseURL:"https://portalnow-16452-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"portalnow-16452"};
+let dbRef; try{firebase.initializeApp(fbConfig);dbRef=firebase.database();}catch(e){alert('Firebase error: '+e.message);}
+
+const H=t=>CryptoJS.SHA256(t).toString(),$=id=>document.getElementById(id);
+let U=null,DB={},stm=null,timerInterval=null,timeLeft=0,_mcq=[],_essay=[],_hwMcq=[],_hwEssay=[],currentLang='vi',selectedAvatar=null;
+
+document.addEventListener('touchmove',e=>{if(!e.target.closest('.modal,.overlay,.card,.exam-block'))e.preventDefault();},{passive:false});
+
+const LANG={vi:{loginSub:'Hệ thống quản lý học tập',login:'ĐĂNG NHẬP',forgot:'Quên mật khẩu',register:'Đăng ký',logout:'ĐĂNG XUẤT',home:'Trang chủ',sched:'Lịch học',me:'Tôi',hw:'Bài tập',exam:'Bài thi',welcome1:'🎉 Chào mừng {0}!',welcome2:'👋 Xin chào {0}!',support:'Hỗ trợ/Khiếu nại',payTitle:'💳 Đóng học phí',payWait:'⏳ Đợi admin xác nhận',sureSubmit:'Bạn chắc chắn muốn nộp?',checkUnanswered:'Kiểm tra câu chưa làm!',autoSubmit:'⏰ Hết giờ! Đã tự động nộp.',saveAv:'💾 Lưu avatar',fullName:'Họ tên',class_:'Lớp',language:'Ngôn ngữ',regMany:'Đăng ký nhiều tiết',noReg:'Chưa đăng ký',history:'Lịch sử',viewHistory:'Xem lịch sử',deleteAdmin:'Xóa Admin',deleteAdminConfirm:'Xác nhận xóa admin?',cannotDeleteLast:'Không thể xóa admin cuối',usernameTaken:'Tên đăng nhập đã tồn tại',regForm:'Đăng ký mới',regName:'Họ tên',regPhone:'SĐT',regEmail:'Email',regCourse:'Khoá học',regOther:'Khác',regSubmit:'GỬI',regSuccess:'✅ Đã gửi!',permissionDenied:'⛔ Không có quyền',deleteFeeLog:'Xoá LS đóng',deleteFeeLogConfirm:'🔒 Nhập MK admin chính:',wrongPass:'❌ Sai MK',slotLimit:'⚠️ Giới hạn {0} lần',addCourse:'Thêm khoá',paySuccess:'✅ Bạn đã thanh toán học phí thành công. Hãy kiểm tra trong mục học phí.',payFailed:'❌ Bạn đã thanh toán học phí thất bại. Hãy kiểm tra lại lịch sử giao dịch ngân hàng của bạn. Thắc mắc xin liên hệ Admin hoặc mục hỗ trợ/khiếu nại.',scoreUpdated:'📊 Điểm của bạn đã được cập nhật. Hãy kiểm tra trong mục kết quả.',sendNotif:'📢 Gửi thông báo',bank1:'Ngân hàng 1',bank2:'Ngân hàng 2',selectBank:'Chọn ngân hàng đóng',assignHW:'Giao bài tập'},en:{loginSub:'Learning Management System',login:'LOGIN',forgot:'Forgot Password',register:'Register',logout:'LOG OUT',home:'Home',sched:'Schedule',me:'Profile',hw:'Homework',exam:'Exam',welcome1:'🎉 Welcome {0}!',welcome2:'👋 Hello {0}!',support:'Support',payTitle:'💳 Pay Tuition',payWait:'⏳ Wait for admin',sureSubmit:'Sure to submit?',checkUnanswered:'Check unanswered!',autoSubmit:'⏰ Time up! Auto-submitted.',saveAv:'💾 Save Avatar',fullName:'Full Name',class_:'Class',language:'Language',regMany:'Register Slots',noReg:'No slots',history:'History',viewHistory:'View History',deleteAdmin:'Delete Admin',deleteAdminConfirm:'Confirm delete?',cannotDeleteLast:'Cannot delete last',usernameTaken:'Username exists',regForm:'Register',regName:'Name',regPhone:'Phone',regEmail:'Email',regCourse:'Course',regOther:'Other',regSubmit:'SUBMIT',regSuccess:'✅ Sent!',permissionDenied:'⛔ Denied',deleteFeeLog:'Delete Log',deleteFeeLogConfirm:'🔒 Main admin pass:',wrongPass:'❌ Wrong',slotLimit:'⚠️ Max {0} slots',addCourse:'Add Course',paySuccess:'✅ Payment successful. Check your tuition section.',payFailed:'❌ Payment failed. Check your bank history. Contact Admin or Support.',scoreUpdated:'📊 Your score has been updated. Check the results section.',sendNotif:'📢 Send Notification',bank1:'Bank 1',bank2:'Bank 2',selectBank:'Select bank',assignHW:'Assign HW'}};
+const t=(k,...a)=>{let s=(LANG[currentLang]?.[k])||(LANG.vi[k]||k);a.forEach((x,i)=>s=s.replace(`{${i}}`,x));return s;};
+const applyLang=()=>{$('login-sub').innerText=t('loginSub');$('un').placeholder=t('loginSub');$('pw').placeholder=t('pw');$('pin').placeholder='••••';document.querySelector('#pg-login .btn-accent').innerText=t('login');const ls=document.querySelectorAll('.link-row a');if(ls[0])ls[0].innerText=t('forgot');if(ls[1])ls[1].innerText=t('register');['tt-home','tt-sched','tt-me','tt-hw','tt-exam'].forEach((id,i)=>$(id).innerText=t(['home','sched','me','hw','exam'][i]));};
+const setLang=l=>{currentLang=l;if(!DB.config)DB.config={};DB.config.lang=l;save('/config/lang',l);applyLang();if(U&&U.r==='hv')navSt('me');};
+const SHOW=id=>{document.querySelectorAll('body>div:not(.overlay):not(.modal)').forEach(d=>d.classList.add('hidden'));$(id).classList.remove('hidden');};
+const logout=()=>{U=null;clearInterval(timerInterval);SHOW('pg-login');$('pin-wrap').style.display='none';$('pin').value='';};
+const clsMod=()=>{$('mod').classList.remove('active');$('ovl').classList.remove('active');};
+const save=(p,d)=>dbRef.ref(p).set(d);
+const togglePW=id=>{const el=$(id);el.type=el.type==='password'?'text':'password';};
+const MSG=(txt,type)=>{const el=$('login-msg');if(!el)return;el.className='msg '+(type==='err'?'msg-err':type==='ok'?'msg-ok':'msg-info');el.innerText=txt;};
+const isMainAdmin=()=>U&&U.r==='admin'&&(!U.role||U.role==='main');
+const isSubAdmin=()=>U&&U.r==='admin'&&U.role!=='main';
+const checkPerm=feature=>{if(isSubAdmin()){const adm=(DB.admins||[]).find(a=>a.u===U.name);if(!(adm?.permissions||['schedule','notif','homework','exam','support']).includes(feature)){alert(t('permissionDenied'));return false;}}return true;};
+
+// ===== MODALS =====
+const showMod=(type,data)=>{
+    const m=$('mod'),o=$('ovl');o.classList.add('active');m.classList.add('active');
+    if(type==='forgot')m.innerHTML=`<h4>🔑 ${t('forgot')}</h4><input id="fp-n" placeholder="${t('fullName')}"><input id="fp-c" placeholder="${t('class_')}"><input id="fp-e" placeholder="Email"><button class="btn btn-blue" onclick="subFP()">GỬI</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;
+    else if(type==='register'){const courses=DB.config?.courses||[];m.innerHTML=`<h4>📝 ${t('regForm')}</h4><input id="reg-name" placeholder="${t('regName')}"><input id="reg-phone" placeholder="${t('regPhone')}" type="tel"><input id="reg-email" placeholder="${t('regEmail')}" type="email"><select id="reg-course" onchange="$('reg-other').style.display=this.value==='__other__'?'block':'none'">${courses.map(c=>`<option>${c}</option>`).join('')}<option value="__other__">${t('regOther')}</option></select><input id="reg-other" placeholder="${t('regOther')}" style="display:none"><button class="btn btn-green" onclick="subReg()">${t('regSubmit')}</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;}
+    else if(type==='support')m.innerHTML=`<h4>💬 ${t('support')}</h4><input id="sp-n" placeholder="${t('fullName')}"><input id="sp-c" placeholder="${t('class_')}"><textarea id="sp-m" placeholder="Nội dung..."></textarea><button class="btn btn-blue" onclick="subSP()">GỬI</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;
+    else if(type==='pay'){const banks=[{id:'1',info:DB.config?.bankInfo,img:DB.config?.bankImg1},{id:'2',info:DB.config?.bankInfo2,img:DB.config?.bankImg2}].filter(b=>b.info);m.innerHTML=`<h4>${t('payTitle')}</h4>${banks.map(b=>`<div class="card"><h5>${t('bank'+b.id)}</h5><div style="white-space:pre-wrap;font-size:11px">${b.info}</div>${b.img?`<img src="${b.img}" style="max-width:100%;border-radius:8px">`:''}</div>`).join('')}<div class="label">Tải ảnh</div><input id="pay-img" type="file" accept="image/*"><button class="btn btn-green" onclick="subPay()">GỬI XÁC NHẬN</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button><p style="font-size:9px;color:var(--sub);margin-top:4px">${t('payWait')}</p>`;}
+    else if(type==='editSlot'){const s=DB.sked.slots[data.index];m.innerHTML=`<h4>✏️ Sửa slot</h4><input id="eds-n" value="${s.n}" placeholder="Tên môn"><select id="eds-d">${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'].map(d=>`<option ${s.d===d?'selected':''}>${d}</option>`).join('')}</select><input id="eds-t" value="${s.ti}" placeholder="Giờ"><input id="eds-c" type="number" value="${s.c}" placeholder="Slot tối đa"><button class="btn btn-green" onclick="saveEditSlot(${data.index})">💾 LƯU</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;}
+    else if(type==='editPN'){const pn=DB.personal_notif[data.u][data.index];m.innerHTML=`<h4>✏️ Sửa TB</h4><textarea id="epn-msg">${pn.msg}</textarea><button class="btn btn-green" onclick="saveEditPN('${data.u}',${data.index})">💾</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;}
+    else if(type==='assignHW'){const hw=DB.hw_list[data.index];const hvList=(DB.hv||[]).map(h=>`<option value="${h.u}" ${(hw.assignedTo||[]).includes(h.u)?'selected':''}>${h.n} (${h.u})</option>`).join('');m.innerHTML=`<h4>📝 ${t('assignHW')}: ${hw.n}</h4><select id="assign-sel" multiple style="min-height:150px">${hvList}</select><button class="btn btn-green" onclick="saveAssign(${data.index})">💾</button><button class="btn btn-outline" onclick="clsMod()">ĐÓNG</button>`;}
+};
+
+const subReg=()=>{const n=$('reg-name').value.trim(),p=$('reg-phone').value.trim(),e=$('reg-email').value.trim(),c=$('reg-course').value,o=$('reg-other').value.trim();if(!n||!p||!e||(!c&&!o)){alert('Nhập đầy đủ!');return;}if(!DB.registrations)DB.registrations=[];DB.registrations.push({name:n,phone:p,email:e,course:c==='__other__'?o:c,date:new Date().toLocaleString(),status:'pending'});save('/registrations',DB.registrations);clsMod();alert(t('regSuccess'));};
+const subFP=()=>{const n=$('fp-n').value.trim(),c=$('fp-c').value.trim(),e=$('fp-e').value.trim();if(!n||!c||!e){alert('Nhập đủ!');return;}if(!DB.pw_requests)DB.pw_requests=[];DB.pw_requests.push({name:n,class:c,email:e,date:new Date().toLocaleString()});save('/pw_requests',DB.pw_requests);clsMod();alert('✅');};
+const subSP=()=>{const n=$('sp-n').value.trim(),c=$('sp-c').value.trim(),m=$('sp-m').value.trim();if(!n||!m){alert('Nhập đủ!');return;}if(!DB.tickets)DB.tickets=[];DB.tickets.push({name:n,class:c,msg:m,date:new Date().toLocaleString(),status:'open'});save('/tickets',DB.tickets);clsMod();alert('✅');};
+const subPay=()=>{if(!DB.payments)DB.payments=[];const file=$('pay-img').files[0];const pushPay=img=>{DB.payments.push({u:U.u,date:new Date().toLocaleString(),img:img||'',status:'pending',note:''});save('/payments',DB.payments);clsMod();alert('✅');};if(file){const r=new FileReader();r.onload=e=>pushPay(e.target.result);r.readAsDataURL(file);}else pushPay('');};
+
+// ===== INIT DB =====
+const initDB=()=>{if(prompt('🔐 Mã xác nhận:')!=='RESET123'){alert('❌ Sai!');return;}if(!confirm('⚠️ XÓA TẤT CẢ DỮ LIỆU?'))return;DB={admins:[{u:"ADMIN1",p:H("portalnow1"),pin:"1111",role:"main"},{u:"ADMIN2",p:H("portalnow2"),pin:"2468",role:"sub"}],hv:[],sked:{t:"Tuần 1",slots:[],isOpen:true,openTime:'',closeTime:'',history:[]},exams:[],hw_list:[],submissions:[],data:{},notif_history:[],personal_notif:{},tickets:[],pw_requests:[],registrations:[],payments:[],config:{adminPin:"2468",resetCode:"RESET123",bankInfo:"",bankInfo2:"",bankImg1:"",bankImg2:"",courses:[],lang:'vi'},shortcuts:[]};dbRef.ref('/').set(DB).then(()=>{currentLang='vi';applyLang();MSG('✅ Sẵn sàng!','ok');});};
+const loadDB=()=>{dbRef.ref('/').once('value').then(s=>{if(s.val()){DB=s.val();['pw_requests','tickets','registrations','payments','shortcuts'].forEach(k=>{if(!DB[k])DB[k]=[];});if(!DB.personal_notif)DB.personal_notif={};if(!DB.config)DB.config={adminPin:"2468",resetCode:"RESET123",bankInfo:"",bankInfo2:"",bankImg1:"",bankImg2:"",courses:[],lang:'vi'};if(!DB.config.courses)DB.config.courses=[];if(!DB.sked)DB.sked={t:"Tuần 1",slots:[],isOpen:true,openTime:'',closeTime:'',history:[]};if(!DB.sked.history)DB.sked.history=[];if(!DB.admins)DB.admins=[{u:"ADMIN1",p:H("portalnow1"),pin:"1111",role:"main"},{u:"ADMIN2",p:H("portalnow2"),pin:"2468",role:"sub"}];DB.admins.forEach(a=>{if(!a.role)a.role=a.u==='ADMIN1'?'main':'sub';});(DB.hw_list||[]).forEach(h=>{if(!h.assignedTo)h.assignedTo=[];});currentLang=DB.config.lang||'vi';applyLang();MSG('✅ Sẵn sàng!','ok');}else initDB();}).catch(()=>MSG('❌ Lỗi kết nối!','err'));};
+
+// ===== LOGIN =====
+let pendingAdmin=null;
+const doLogin=()=>{const un=$('un').value.trim(),pw=$('pw').value.trim();if(!un||!pw){MSG('Nhập đủ!','err');return;}const adm=(DB.admins||[]).find(a=>a.u===un);if(adm&&(adm.p===H(pw)||adm.p===pw)){pendingAdmin=adm;$('pin-wrap').style.display='block';$('pin').focus();MSG('','info');return;}const st=(DB.hv||[]).find(h=>h.u===un);if(st&&(st.p===H(pw)||st.p===pw)){U={r:'hv',...st};if(!U.avatar)U.avatar='👤';U.loginCount=(U.loginCount||0)+1;$('hv-title').innerText=U.n;SHOW('pg-hv');navSt('home');return;}MSG('❌ Sai!','err');};
+const verifyPin=()=>{const pin=$('pin').value,cp=pendingAdmin?.pin||DB.config?.adminPin||'2468';if(pin===cp){U={r:'admin',name:pendingAdmin.u,role:pendingAdmin.role||'sub'};pendingAdmin=null;$('pin-wrap').style.display='none';$('pin').value='';SHOW('pg-admin');buildAdminMenu();navAd('schedule');}else{MSG('❌ Sai PIN!','err');$('pin').value='';}};
+$('pin').addEventListener('keyup',function(){if(this.value.length>=4)verifyPin();});
+$('pin').addEventListener('keydown',function(e){if(e.key==='Enter'&&this.value.length>=4)verifyPin();});
+
+// ===== ADMIN MENU =====
+const buildAdminMenu=()=>{
+    const menuItems=[{id:'schedule',icon:'📅',label:'Lịch học'},{id:'notif',icon:'📢',label:'Thông báo'},{id:'homework',icon:'📝',label:'Bài tập'},{id:'exam',icon:'📄',label:'Thi cử'},{id:'students',icon:'👥',label:'Học viên'},{id:'progress',icon:'📋',label:'Chương trình'},{id:'fee',icon:'💰',label:'Học phí'},{id:'results',icon:'📊',label:'Kết quả'},{id:'support',icon:'🆘',label:'Hỗ trợ'},{id:'settings',icon:'🔧',label:'Cài đặt'}];
+    $('ad-menu').innerHTML=menuItems.map(m=>`<div class="menu-card" onclick="navAd('${m.id}')"><span class="icon">${m.icon}</span>${m.label}${m.id==='support'?' <span id="sup-badge" style="display:none;color:red">●</span>':''}</div>`).join('');
+};
+
+const navAd=pg=>{if(!checkPerm(pg))return;const pages={schedule:adSchedule,notif:adNotif,homework:adHW,exam:adExam,students:adStudents,progress:adProgress,fee:adFee,results:adResults,support:adSupport,settings:adSettings};if(pages[pg])pages[pg]($('ad-content'));const badge=$('sup-badge');if(badge)badge.style.display=(DB.payments||[]).some(p=>p.status==='pending')||(DB.tickets||[]).some(t=>t.status==='open')||(DB.pw_requests||[]).length||(DB.registrations||[]).some(r=>r.status==='pending')?'inline':'none';};
+
+// ===== AD: SCHEDULE =====
+const adSchedule=c=>{const sk=DB.sked||{};c.innerHTML=`<div class="card"><h4>📅 ${sk.t}</h4><div class="form-row"><input id="skt" value="${sk.t}" placeholder="Tên tuần"><button class="btn btn-sm btn-gold" onclick="svWeek()">💾</button></div><div class="form-row"><input id="skot" type="datetime-local" value="${sk.openTime||''}" placeholder="Mở ĐK"><input id="skct" type="datetime-local" value="${sk.closeTime||''}" placeholder="Đóng ĐK"></div><span class="tag ${sk.isOpen?'tag-on':'tag-off'}">${sk.isOpen?'MỞ':'KHÓA'}</span> <button class="btn btn-sm btn-outline" onclick="tgSked()">${sk.isOpen?'Khóa':'Mở'}</button><hr style="border-color:var(--border);margin:8px 0"><div class="form-row"><input id="sln" placeholder="Môn"><select id="sld">${['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'].map(d=>`<option>${d}</option>`).join('')}</select><input id="slt" placeholder="Giờ"><input id="slc" type="number" value="10" placeholder="Slot"></div><button class="btn btn-sm btn-green" onclick="addSl()">+ THÊM</button> <button class="btn btn-sm btn-red" onclick="resetSl()">🔄 RESET</button> <button class="btn btn-sm btn-outline" onclick="saveHist()">📥 Lưu LS</button></div>${(sk.slots||[]).map((s,i)=>`<div class="card flex-between"><div><b>${s.n}</b> | ${s.d}-${s.ti} | ${(s.r||[]).length}/${s.c}</div><div><button class="btn btn-xs btn-gold" onclick="showMod('editSlot',{index:${i}})">✏️</button><button class="btn btn-xs btn-red" onclick="delSl(${i})">🗑️</button></div></div><div style="font-size:9px;color:var(--sub)">HV: ${(s.r||[]).join(', ')||'Chưa có'}</div><button class="btn btn-xs btn-outline" onclick="editStReg(${i})">✏️ Sửa ĐK</button>`).join('')}${sk.history?.length?`<h4>📜 Lịch sử</h4>${sk.history.map((h,i)=>`<div class="card flex-between"><div><b>${h.t}</b> <small>${h.date}</small></div><button class="btn btn-xs btn-red" onclick="delHist(${i})">🗑️</button></div>`).join('')}`:''}`;};
+const svWeek=()=>{DB.sked.t=$('skt').value;DB.sked.openTime=$('skot').value;DB.sked.closeTime=$('skct').value;save('/sked',DB.sked);navAd('schedule');};
+const tgSked=()=>{DB.sked.isOpen=!DB.sked.isOpen;save('/sked',DB.sked);navAd('schedule');};
+const addSl=()=>{if(!DB.sked.slots)DB.sked.slots=[];DB.sked.slots.push({n:$('sln').value||'Môn',d:$('sld').value,ti:$('slt').value||'?',c:+$('slc').value||10,r:[]});save('/sked/slots',DB.sked.slots);navAd('schedule');};
+const delSl=i=>{if(confirm('Xóa?')){DB.sked.slots.splice(i,1);save('/sked/slots',DB.sked.slots);navAd('schedule');}};
+const resetSl=()=>{if(!confirm('Reset?'))return;if(!DB.sked.history)DB.sked.history=[];DB.sked.history.unshift({t:DB.sked.t,slots:JSON.parse(JSON.stringify(DB.sked.slots)),date:new Date().toLocaleString()});DB.sked.t='Tuần '+((+DB.sked.t.replace(/\D/g,'')||1)+1);DB.sked.slots=[];save('/sked',DB.sked);navAd('schedule');};
+const saveHist=()=>{if(!DB.sked.history)DB.sked.history=[];DB.sked.history.unshift({t:DB.sked.t,slots:JSON.parse(JSON.stringify(DB.sked.slots)),date:new Date().toLocaleString()});save('/sked/history',DB.sked.history);navAd('schedule');};
+const delHist=i=>{if(confirm('Xóa?')){DB.sked.history.splice(i,1);save('/sked/history',DB.sked.history);navAd('schedule');}};
+const saveEditSlot=i=>{const s=DB.sked.slots[i];s.n=$('eds-n').value;s.d=$('eds-d').value;s.ti=$('eds-t').value;s.c=+$('eds-c').value||10;save('/sked/slots',DB.sked.slots);clsMod();navAd('schedule');};
+const editStReg=i=>{const s=DB.sked.slots[i];$('ad-content').innerHTML=`<div class="card"><h4>✏️ Sửa ĐK: ${s.n}</h4><select id="reg-sel" multiple style="min-height:150px">${(DB.hv||[]).map(h=>`<option ${(s.r||[]).includes(h.u)?'selected':''} value="${h.u}">${h.n} (${h.u})</option>`).join('')}</select><button class="btn btn-sm btn-green" onclick="svStReg(${i})">💾</button><button class="btn btn-sm btn-outline" onclick="navAd('schedule')">←</button></div>`;};
+const svStReg=i=>{const r=[];for(let o of $('reg-sel').options)if(o.selected)r.push(o.value);DB.sked.slots[i].r=r;save('/sked/slots',DB.sked.slots);navAd('schedule');};
+
+// ===== AD: NOTIF =====
+const adNotif=c=>{c.innerHTML=`<div class="card"><h4>📢 Thông báo chung</h4><div class="rich-toolbar"><button onclick="wrapTag('b')"><b>B</b></button><button onclick="wrapTag('i')"><i>I</i></button><button onclick="wrapTag('span style=color:red')">🔴</button><button onclick="wrapTag('span style=color:blue')">🔵</button><button onclick="wrapTag('span style=color:green')">🟢</button></div><textarea id="nfg" onkeyup="applyShortcuts('nfg')"></textarea><button class="btn btn-sm btn-blue" onclick="sendGN()">GỬI</button></div><div class="card"><h4>📨 Riêng</h4><select id="nft"><option value="">Chọn HV</option>${(DB.hv||[]).map(h=>`<option value="${h.u}">${h.n}</option>`).join('')}</select><textarea id="nfp"></textarea><button class="btn btn-sm btn-gold" onclick="sendPN()">GỬI</button></div><div class="card"><h4>⚡ Phím tắt</h4><div class="form-row"><input id="sc-key" placeholder="Kí tự"><textarea id="sc-val" placeholder="Nội dung"></textarea></div><button class="btn btn-sm btn-green" onclick="addSC()">+</button>${(DB.shortcuts||[]).map((s,i)=>`<div class="card flex-between"><div><b>${s.key}</b> → ${s.val}</div><button class="btn btn-xs btn-red" onclick="delSC(${i})">X</button></div>`).join('')}</div><h4>Lịch sử chung</h4>${(DB.notif_history||[]).map((n,i)=>`<div class="card flex-between"><div><small>${n.date}</small><br>${n.msg}</div><button class="btn btn-xs btn-red" onclick="delNf(${i})">🗑️</button></div>`).join('')}<h4>Lịch sử riêng</h4>${Object.entries(DB.personal_notif||{}).map(([uid,notifs])=>(notifs||[]).map((n,i)=>{const hv=(DB.hv||[]).find(h=>h.u===uid);return`<div class="card flex-between"><div><b>${hv?hv.n:uid}</b><br>${n.msg}<br><small>${n.date}</small></div><div><button class="btn btn-xs btn-gold" onclick="showMod('editPN',{u:'${uid}',index:${i}})">✏️</button><button class="btn btn-xs btn-red" onclick="delPN('${uid}',${i})">🗑️</button></div></div>`;}).join('')).join('')}`;};
+const wrapTag=tag=>{const ta=$('nfg'),s=ta.selectionStart,e=ta.selectionEnd,ot=tag.includes('=')?tag.split(' ')[0]+' '+tag.split(' ')[1]:tag;ta.value=ta.value.substring(0,s)+`<${tag}>${ta.value.substring(s,e)||'text'}</${ot.split(' ')[0].replace('<','')}>`+ta.value.substring(e);};
+const applyShortcuts=id=>{const ta=$(id);let v=ta.value;(DB.shortcuts||[]).forEach(s=>{v=v.replace(new RegExp(s.key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),s.val);});if(v!==ta.value)ta.value=v;};
+const addSC=()=>{const k=$('sc-key').value.trim(),v=$('sc-val').value.trim();if(!k||!v)return;if(!DB.shortcuts)DB.shortcuts=[];DB.shortcuts.push({key:k,val:v});save('/shortcuts',DB.shortcuts);navAd('notif');};
+const delSC=i=>{DB.shortcuts.splice(i,1);save('/shortcuts',DB.shortcuts);navAd('notif');};
+const sendGN=()=>{applyShortcuts('nfg');const m=$('nfg').value.trim();if(!m)return;if(!DB.notif_history)DB.notif_history=[];DB.notif_history.unshift({msg:m,date:new Date().toLocaleString()});(DB.hv||[]).forEach(h=>{if(!DB.data[h.u])DB.data[h.u]={};DB.data[h.u]['2b_new']=true;});save('/notif_history',DB.notif_history);navAd('notif');};
+const sendPN=()=>{const t=$('nft').value,m=$('nfp').value.trim();if(!t||!m)return;if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[t])DB.personal_notif[t]=[];DB.personal_notif[t].push({msg:m,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);navAd('notif');};
+const delNf=i=>{DB.notif_history.splice(i,1);save('/notif_history',DB.notif_history);navAd('notif');};
+const saveEditPN=(u,i)=>{DB.personal_notif[u][i].msg=$('epn-msg').value;save('/personal_notif',DB.personal_notif);clsMod();navAd('notif');};
+const delPN=(u,i)=>{if(confirm('Xóa?')){DB.personal_notif[u].splice(i,1);save('/personal_notif',DB.personal_notif);navAd('notif');}};
+
+// ===== SEND AUTO NOTIF =====
+const sendAutoNotif=(u,msg)=>{if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[u])DB.personal_notif[u]=[];DB.personal_notif[u].push({msg,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);};
+
+// ===== AD: HOMEWORK (with assign) =====
+const adHW=c=>{_hwMcq=[];_hwEssay=[];c.innerHTML=`<div class="card"><h4>📝 Tạo bài tập</h4><input id="hwn" placeholder="Tên"><div class="form-row"><input id="hws" type="datetime-local" placeholder="Bắt đầu"><input id="hwe" type="datetime-local" placeholder="Kết thúc"></div><div class="form-row"><input id="hwt" type="number" value="30" placeholder="Phút"><input id="hwslot" type="number" value="1" placeholder="Slot"></div><h5>TN</h5><div id="hw-mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addHWMCQ()">+ TN</button><h5>TL</h5><div id="hw-essay-list"></div><button class="btn btn-sm btn-gold" onclick="addHWEssay()">+ TL</button><button class="btn btn-sm btn-green" onclick="saveHW()">💾</button></div><h4>DS</h4>${(DB.hw_list||[]).map((h,i)=>`<div class="card flex-between"><div><b>${h.n}</b><br><small>TN:${(h.mcq||[]).length} TL:${(h.essay||[]).length} | ${h.t||30}ph | Slot:${h.slot||1}<br>Giao: ${(h.assignedTo||[]).length||0} HV</small></div><div><button class="btn btn-xs btn-blue" onclick="showMod('assignHW',{index:${i}})">👥 Giao</button><button class="btn btn-xs btn-gold" onclick="edHW(${i})">✏️</button><button class="btn btn-xs btn-blue" onclick="vwHW(${i})">👁</button><button class="btn btn-xs btn-red" onclick="delHW(${i})">🗑️</button></div></div>`).join('')}<br><button class="btn btn-sm btn-outline" onclick="vwSubs('hw')">📋 XEM BÀI NỘP</button>`;};
+const saveAssign=i=>{const sel=$('assign-sel'),r=[];for(let o of sel.options)if(o.selected)r.push(o.value);DB.hw_list[i].assignedTo=r;save('/hw_list',DB.hw_list);clsMod();navAd('homework');};
+const addHWMCQ=()=>{_hwMcq.push({q:'',a:'',b:'',c:'',d:'',ans:'A',pt:1});renderHWMCQ();};
+const addHWEssay=()=>{_hwEssay.push({q:'',pt:10});renderHWEssay();};
+const renderHWMCQ=()=>{$('hw-mcq-list').innerHTML=_hwMcq.map((m,i)=>`<div class="exam-block"><div class="flex-between"><h5>Câu ${i+1}</h5><div><input value="${m.pt}" onchange="_hwMcq[${i}].pt=+this.value||1" type="number" style="width:40px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_hwMcq.splice(${i},1);renderHWMCQ()">X</button></div><input value="${m.q}" onchange="_hwMcq[${i}].q=this.value" placeholder="Câu hỏi"><div class="form-row"><div>A:<input value="${m.a}" onchange="_hwMcq[${i}].a=this.value"></div><div>B:<input value="${m.b}" onchange="_hwMcq[${i}].b=this.value"></div></div><div class="form-row"><div>C:<input value="${m.c}" onchange="_hwMcq[${i}].c=this.value"></div><div>D:<input value="${m.d}" onchange="_hwMcq[${i}].d=this.value"></div></div><select onchange="_hwMcq[${i}].ans=this.value">${['A','B','C','D'].map(a=>`<option ${m.ans===a?'selected':''}>${a}</option>`).join('')}</select></div>`).join('');};
+const renderHWEssay=()=>{$('hw-essay-list').innerHTML=_hwEssay.map((e,i)=>`<div class="exam-block"><div class="flex-between"><h5>TL ${i+1}</h5><div><input value="${e.pt}" onchange="_hwEssay[${i}].pt=+this.value||10" type="number" style="width:40px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_hwEssay.splice(${i},1);renderHWEssay()">X</button></div><textarea onchange="_hwEssay[${i}].q=this.value">${e.q||''}</textarea></div>`).join('');};
+const saveHW=()=>{if(!DB.hw_list)DB.hw_list=[];DB.hw_list.push({n:$('hwn').value||'BT',start:$('hws').value,end:$('hwe').value,t:+$('hwt').value||30,slot:+$('hwslot').value||1,mcq:JSON.parse(JSON.stringify(_hwMcq)),essay:JSON.parse(JSON.stringify(_hwEssay)),assignedTo:[]});save('/hw_list',DB.hw_list);_hwMcq=[];_hwEssay=[];navAd('homework');};
+const edHW=i=>{const h=DB.hw_list[i];_hwMcq=JSON.parse(JSON.stringify(h.mcq||[]));_hwEssay=JSON.parse(JSON.stringify(h.essay||[]));$('ad-content').innerHTML=`<div class="card"><h4>✏️ ${h.n}</h4><input id="hwn" value="${h.n}"><div class="form-row"><input id="hws" type="datetime-local" value="${h.start||''}"><input id="hwe" type="datetime-local" value="${h.end||''}"></div><div class="form-row"><input id="hwt" type="number" value="${h.t||30}"><input id="hwslot" type="number" value="${h.slot||1}"></div><h5>TN</h5><div id="hw-mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addHWMCQ()">+TN</button><h5>TL</h5><div id="hw-essay-list"></div><button class="btn btn-sm btn-gold" onclick="addHWEssay()">+TL</button><button class="btn btn-sm btn-green" onclick="updateHW(${i})">💾</button></div>`;renderHWMCQ();renderHWEssay();};
+const updateHW=i=>{const h=DB.hw_list[i];h.n=$('hwn').value;h.start=$('hws').value;h.end=$('hwe').value;h.t=+$('hwt').value||30;h.slot=+$('hwslot').value||1;h.mcq=JSON.parse(JSON.stringify(_hwMcq));h.essay=JSON.parse(JSON.stringify(_hwEssay));save('/hw_list',DB.hw_list);_hwMcq=[];_hwEssay=[];navAd('homework');};
+const vwHW=i=>{const h=DB.hw_list[i];let t=`<div class="card"><h4>${h.n}</h4>`;if(h.mcq?.length)h.mcq.forEach((m,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${m.q}<br>A.${m.a} B.${m.b} C.${m.c} D.${m.d}<br><small style="color:#3fb950">ĐA:${m.ans}</small></div>`);if(h.essay?.length)h.essay.forEach((e,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${e.q||''}</div>`);t+=`</div><button class="btn btn-sm btn-outline" onclick="navAd('homework')">←</button>`;$('ad-content').innerHTML=t;};
+const delHW=i=>{if(confirm('Xóa?')){DB.hw_list.splice(i,1);save('/hw_list',DB.hw_list);navAd('homework');}};
+
+// ===== AD: EXAM =====
+const adExam=c=>{_mcq=[];_essay=[];c.innerHTML=`<div class="card"><h4>📄 Tạo đề thi</h4><input id="exn" placeholder="Tên"><div class="form-row"><input id="ext" type="number" value="45" placeholder="Phút"><input id="exp" placeholder="MK"><input id="exslot" type="number" value="1" placeholder="Slot"></div><select id="exs"><option value="1">BẬT</option><option value="0">TẮT</option></select><h5>TN</h5><div id="mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addMCQ()">+TN</button><h5>TL</h5><div id="essay-list"></div><button class="btn btn-sm btn-gold" onclick="addEssay()">+TL</button><button class="btn btn-sm btn-green" onclick="saveExam()">💾</button></div><h4>DS</h4>${(DB.exams||[]).map((x,i)=>`<div class="card flex-between"><div><b>${x.n}</b> <span class="tag ${x.st=='1'?'tag-on':'tag-off'}">${x.st=='1'?'MỞ':'KHÓA'}</span><br><small>TN:${(x.mcq||[]).length} TL:${(x.essay||[]).length} | ${x.t}ph | Slot:${x.slot||1}</small></div><div><button class="btn btn-xs btn-gold" onclick="edEx(${i})">✏️</button><button class="btn btn-xs btn-blue" onclick="vwEx(${i})">👁</button><button class="btn btn-xs btn-red" onclick="delEx(${i})">🗑️</button></div></div>`).join('')}<br><button class="btn btn-sm btn-outline" onclick="vwSubs('exam')">📋 XEM BÀI THI</button>`;};
+const addMCQ=()=>{_mcq.push({q:'',a:'',b:'',c:'',d:'',ans:'A',pt:1});renderMCQ();};
+const addEssay=()=>{_essay.push({q:'',pt:10});renderEssay();};
+const renderMCQ=()=>{$('mcq-list').innerHTML=_mcq.map((m,i)=>`<div class="exam-block"><div class="flex-between"><h5>Câu ${i+1}</h5><div><input value="${m.pt}" onchange="_mcq[${i}].pt=+this.value||1" type="number" style="width:40px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_mcq.splice(${i},1);renderMCQ()">X</button></div><input value="${m.q}" onchange="_mcq[${i}].q=this.value" placeholder="Câu hỏi"><div class="form-row"><div>A:<input value="${m.a}" onchange="_mcq[${i}].a=this.value"></div><div>B:<input value="${m.b}" onchange="_mcq[${i}].b=this.value"></div></div><div class="form-row"><div>C:<input value="${m.c}" onchange="_mcq[${i}].c=this.value"></div><div>D:<input value="${m.d}" onchange="_mcq[${i}].d=this.value"></div></div><select onchange="_mcq[${i}].ans=this.value">${['A','B','C','D'].map(a=>`<option ${m.ans===a?'selected':''}>${a}</option>`).join('')}</select></div>`).join('');};
+const renderEssay=()=>{$('essay-list').innerHTML=_essay.map((e,i)=>`<div class="exam-block"><div class="flex-between"><h5>TL ${i+1}</h5><div><input value="${e.pt}" onchange="_essay[${i}].pt=+this.value||10" type="number" style="width:40px;display:inline"></div><button class="btn btn-xs btn-red" onclick="_essay.splice(${i},1);renderEssay()">X</button></div><textarea onchange="_essay[${i}].q=this.value">${e.q||''}</textarea></div>`).join('');};
+const saveExam=()=>{if(!DB.exams)DB.exams=[];DB.exams.push({n:$('exn').value||'Đề',t:+$('ext').value||45,p:$('exp').value,st:$('exs').value,slot:+$('exslot').value||1,mcq:JSON.parse(JSON.stringify(_mcq)),essay:JSON.parse(JSON.stringify(_essay))});save('/exams',DB.exams);_mcq=[];_essay=[];navAd('exam');};
+const edEx=i=>{const x=DB.exams[i];_mcq=JSON.parse(JSON.stringify(x.mcq||[]));_essay=JSON.parse(JSON.stringify(x.essay||[]));$('ad-content').innerHTML=`<div class="card"><h4>✏️ ${x.n}</h4><input id="exn" value="${x.n}"><div class="form-row"><input id="ext" type="number" value="${x.t}"><input id="exp" value="${x.p}"><input id="exslot" type="number" value="${x.slot||1}"></div><select id="exs"><option value="1" ${x.st=='1'?'selected':''}>BẬT</option><option value="0" ${x.st=='0'?'selected':''}>TẮT</option></select><h5>TN</h5><div id="mcq-list"></div><button class="btn btn-sm btn-blue" onclick="addMCQ()">+TN</button><h5>TL</h5><div id="essay-list"></div><button class="btn btn-sm btn-gold" onclick="addEssay()">+TL</button><button class="btn btn-sm btn-green" onclick="updateExam(${i})">💾</button></div>`;renderMCQ();renderEssay();};
+const updateExam=i=>{const x=DB.exams[i];x.n=$('exn').value;x.t=+$('ext').value||45;x.p=$('exp').value;x.st=$('exs').value;x.slot=+$('exslot').value||1;x.mcq=JSON.parse(JSON.stringify(_mcq));x.essay=JSON.parse(JSON.stringify(_essay));save('/exams',DB.exams);_mcq=[];_essay=[];navAd('exam');};
+const vwEx=i=>{const x=DB.exams[i];let t=`<div class="card"><h4>${x.n}</h4>`;if(x.mcq?.length)x.mcq.forEach((m,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${m.q}<br>A.${m.a} B.${m.b} C.${m.c} D.${m.d}<br><small style="color:#3fb950">ĐA:${m.ans}</small></div>`);if(x.essay?.length)x.essay.forEach((e,j)=>t+=`<div class="exam-block"><b>Câu ${j+1}:</b> ${e.q||''}</div>`);t+=`</div><button class="btn btn-sm btn-outline" onclick="navAd('exam')">←</button>`;$('ad-content').innerHTML=t;};
+const delEx=i=>{if(confirm('Xóa?')){DB.exams.splice(i,1);save('/exams',DB.exams);navAd('exam');}};
+const vwSubs=type=>{const subs=(DB.submissions||[]).filter(s=>s.type===type);$('ad-content').innerHTML=`<h4>Bài nộp (${subs.length})</h4>${subs.map(s=>{let ans='';try{const a=JSON.parse(s.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=s.con;}return`<div class="card"><b>${s.u}</b> - ${s.n}<br><small>${s.date} (${s.dur})</small><pre style="white-space:pre-wrap;background:rgba(0,0,0,0.2);padding:8px;border-radius:6px">${ans}</pre>${type==='exam'?`<div class="form-row"><input id="mcq-score-${s.u}-${s.n}" placeholder="Điểm TN"><input id="essay-score-${s.u}-${s.n}" placeholder="Điểm TL"></div><button class="btn btn-sm btn-green" onclick="scoreExam('${s.u}','${s.n}')">CHẤM</button>`:''}</div>`;}).join('')}<button class="btn btn-sm btn-outline" onclick="navAd('${type==='hw'?'homework':'exam'}')">←</button>`;};
+const scoreExam=(u,n)=>{const s=(DB.submissions||[]).find(s=>s.u===u&&s.n===n&&s.type==='exam');if(s){s.mcqScore=$(`mcq-score-${u}-${n}`).value;s.essayScore=$(`essay-score-${u}-${n}`).value;s.scored=true;save('/submissions',DB.submissions);alert('✅');}vwSubs('exam');};
+
+// ===== AD: STUDENTS, PROGRESS, FEE, RESULTS, SUPPORT =====
+const adStudents=c=>{c.innerHTML=`<div class="card"><h4>👥 Thêm HV</h4><input id="stn" placeholder="Họ tên"><input id="stl" placeholder="Lớp"><input id="stu" placeholder="Username"><input id="ste" placeholder="Email"><input id="stp" type="password" placeholder="Mật khẩu"><button class="btn btn-sm btn-green" onclick="addSt()">THÊM</button></div><h4>DS (${(DB.hv||[]).length})</h4>${(DB.hv||[]).map((h,i)=>`<div class="card flex-between"><div><b>${h.n}</b> | ${h.l} | ${h.u}<br><small>${h.email||''}</small></div><div><button class="btn btn-xs btn-gold" onclick="edSt(${i})">✏️</button><button class="btn btn-xs btn-red" onclick="delSt(${i})">🗑️</button></div></div>`).join('')}`;};
+const addSt=()=>{const un=($('stu').value.trim()||'user')+'.portalnow';if((DB.hv||[]).find(h=>h.u===un))return alert('Tồn tại!');if(!DB.hv)DB.hv=[];DB.hv.push({n:$('stn').value,l:$('stl').value,u:un,email:$('ste').value,p:H($('stp').value),avatar:'👤',loginCount:0});save('/hv',DB.hv);alert('✅ '+un);navAd('students');};
+const edSt=i=>{const h=DB.hv[i],n=prompt('Tên:',h.n),l=prompt('Lớp:',h.l),e=prompt('Email:',h.email);if(n)h.n=n;if(l)h.l=l;if(e)h.email=e;save('/hv',DB.hv);navAd('students');};
+const delSt=i=>{if(confirm('Xóa?')){DB.hv.splice(i,1);save('/hv',DB.hv);navAd('students');}};
+const adProgress=c=>{c.innerHTML='<h4>📋 Chương trình</h4>';(DB.hv||[]).forEach(h=>{c.innerHTML+=`<div class="card"><b>${h.n}</b><textarea id="prog-${h.u}" style="min-height:50px;margin-top:4px">${DB.data?.[h.u]?.prog||''}</textarea><button class="btn btn-sm btn-green" onclick="svProg('${h.u}')">💾</button></div>`;});};
+const svProg=u=>{if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};DB.data[u].prog=$('prog-'+u).value;save(`/data/${u}`,DB.data[u]);navAd('progress');};
+
+// ===== AD: FEE (with bank selection & auto notif) =====
+const adFee=c=>{
+    c.innerHTML='<h4>💰 Học phí</h4>';
+    (DB.hv||[]).forEach(h=>{
+        const f=DB.data?.[h.u]?.fee||{slots:0,rate:0,paid:0,extra:0,logs:[],bank:''};
+        const banks=[{id:'1',info:DB.config?.bankInfo,img:DB.config?.bankImg1},{id:'2',info:DB.config?.bankInfo2,img:DB.config?.bankImg2}].filter(b=>b.info);
+        const total=f.slots*f.rate+f.extra,debt=total-f.paid;
+        c.innerHTML+=`<div class="card"><div class="flex-between"><b>${h.n}</b><span style="font-size:10px">Tổng:${total.toLocaleString()}đ | Nộp:${f.paid.toLocaleString()}đ | Nợ:<b style="color:${debt<=0?'var(--green)':'var(--red)'}">${debt.toLocaleString()}đ</b></span></div>
+        <div class="form-row"><input id="fs-${h.u}" type="number" value="${f.slots}" placeholder="Tiết"><input id="fr-${h.u}" type="number" value="${f.rate}" placeholder="Đơn giá"><input id="fe-${h.u}" type="number" value="${f.extra}" placeholder="Phí PS"><input id="fa-${h.u}" type="number" value="0" placeholder="Nộp thêm"></div>
+        <div class="form-row"><select id="fb-${h.u}" style="flex:1"><option value="">${t('selectBank')}</option>${banks.map(b=>`<option value="${b.id}" ${f.bank===b.id?'selected':''}>${t('bank'+b.id)}</option>`).join('')}</select></div>
+        <div class="flex-between"><button class="btn btn-sm btn-green" onclick="svFee('${h.u}')">💾</button>${debt<=0?`<button class="btn btn-xs btn-blue" onclick="sendPayNotif('${h.u}','success')">📢 ${t('sendNotif')} ✅</button>`:`<button class="btn btn-xs btn-red" onclick="sendPayNotif('${h.u}','failed')">📢 ${t('sendNotif')} ❌</button>`}</div>
+        <h5>LS đóng</h5>${(f.logs||[]).map(l=>`<div class="flex-between"><small>${l}</small><button class="btn btn-xs btn-red" onclick="delFeeLog('${h.u}','${l}')">🗑️</button></div>`).join('')||'<small>Chưa có</small>'}</div>`;
+    });
+    c.innerHTML+=`<div class="card"><h4>🏦 ${t('bank1')}</h4><textarea id="cfg-bank">${DB.config?.bankInfo||''}</textarea><input id="cfg-bankimg1" type="file" accept="image/*"><button class="btn btn-sm btn-green" onclick="saveBank(1)">💾</button></div><div class="card"><h4>🏦 ${t('bank2')}</h4><textarea id="cfg-bank2">${DB.config?.bankInfo2||''}</textarea><input id="cfg-bankimg2" type="file" accept="image/*"><button class="btn btn-sm btn-green" onclick="saveBank(2)">💾</button></div>`;
+};
+const svFee=u=>{
+    if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};
+    const f=DB.data[u].fee||{slots:0,rate:0,paid:0,extra:0,logs:[],bank:''};
+    f.slots=+$('fs-'+u).value||0;f.rate=+$('fr-'+u).value||0;f.extra=+$('fe-'+u).value||0;f.bank=$('fb-'+u)?.value||'';
+    const a=+$('fa-'+u).value||0;
+    if(a>0){f.paid+=a;f.logs.unshift(new Date().toLocaleDateString()+': <span style=color:red>+'+a.toLocaleString()+'đ</span>');}
+    DB.data[u].fee=f;save(`/data/${u}`,DB.data[u]);navAd('fee');
+};
+const sendPayNotif=(u,type)=>{const msg=type==='success'?t('paySuccess'):t('payFailed');sendAutoNotif(u,msg);alert('✅ Đã gửi thông báo!');};
+const delFeeLog=(u,logText)=>{const pass=prompt(t('deleteFeeLogConfirm'));const mainAdmin=(DB.admins||[]).find(a=>a.role==='main');if(!mainAdmin||mainAdmin.p!==H(pass)){alert(t('wrongPass'));return;}if(DB.data?.[u]?.fee)DB.data[u].fee.logs=(DB.data[u].fee.logs||[]).filter(l=>l!==logText);save(`/data/${u}`,DB.data[u]);navAd('fee');};
+const saveBank=num=>{
+    if(num===1){DB.config.bankInfo=$('cfg-bank').value;const f=$('cfg-bankimg1').files[0];if(f){const r=new FileReader();r.onload=e=>{DB.config.bankImg1=e.target.result;save('/config',DB.config);navAd('fee');};r.readAsDataURL(f);}else{save('/config',DB.config);navAd('fee');}}
+    else{DB.config.bankInfo2=$('cfg-bank2').value;const f=$('cfg-bankimg2').files[0];if(f){const r=new FileReader();r.onload=e=>{DB.config.bankImg2=e.target.result;save('/config',DB.config);navAd('fee');};r.readAsDataURL(f);}else{save('/config',DB.config);navAd('fee');}}
+};
+
+// ===== AD: RESULTS (with score notif) =====
+const adResults=c=>{c.innerHTML='<h4>📊 Kết quả</h4>';(DB.hv||[]).forEach(h=>{const d=DB.data?.[h.u]||{};c.innerHTML+=`<div class="card"><div class="flex-between"><b>${h.n}</b><span class="notif-btn" onclick="sendScoreNotif('${h.u}')" title="${t('sendNotif')}">📢</span></div><div class="form-row"><input id="pn-${h.u}" placeholder="Tên"><input id="ps-${h.u}" placeholder="Điểm"><input id="pc-${h.u}" placeholder="NX"><select id="pt-${h.u}"><option value="tl">TL</option><option value="kt">KT</option></select></div><button class="btn btn-sm btn-green" onclick="addPt('${h.u}')">+</button><table>${(d.pts_tl||[]).concat(d.pts_kt||[]).map((p,i)=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td><td><button class="btn btn-xs btn-red" onclick="delPt('${h.u}','${i<(d.pts_tl||[]).length?'tl':'kt'}',${i<(d.pts_tl||[]).length?i:i-(d.pts_tl||[]).length})">X</button></td></tr>`).join('')}</table></div>`;});};
+const addPt=u=>{if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};const t=$('pt-'+u).value,it={n:$('pn-'+u).value,s:$('ps-'+u).value,cm:$('pc-'+u).value};if(t==='tl'){if(!DB.data[u].pts_tl)DB.data[u].pts_tl=[];DB.data[u].pts_tl.push(it);}else{if(!DB.data[u].pts_kt)DB.data[u].pts_kt=[];DB.data[u].pts_kt.push(it);}save(`/data/${u}`,DB.data[u]);adResults($('ad-content'));};
+const delPt=(u,t,i)=>{if(t==='tl')DB.data[u].pts_tl.splice(i,1);else DB.data[u].pts_kt.splice(i,1);save(`/data/${u}`,DB.data[u]);adResults($('ad-content'));};
+const sendScoreNotif=u=>{sendAutoNotif(u,t('scoreUpdated'));alert('✅ Đã gửi thông báo điểm!');};
+
+// ===== AD: SUPPORT =====
+const adSupport=c=>{c.innerHTML=`<h4>🆘 Hỗ trợ</h4><h5>📝 Đăng ký mới</h5>${(DB.registrations||[]).map((r,i)=>`<div class="card flex-between"><div><b>${r.name}</b> | ${r.phone} | ${r.email}<br>Khoá: ${r.course}<br><small>${r.date} (${r.status||'pending'})</small></div><button class="btn btn-xs btn-green" onclick="confirmReg(${i})">✅</button><button class="btn btn-xs btn-red" onclick="delReg(${i})">🗑️</button></div>`).join('')}<h5>🔑 Quên MK</h5>${(DB.pw_requests||[]).map((r,i)=>`<div class="card flex-between"><b>${r.name}</b> | ${r.class} | ${r.email}<br><small>${r.date}</small><button class="btn btn-xs btn-red" onclick="delPWR(${i})">🗑️</button></div>`).join('')}<h5>💬 Khiếu nại</h5>${(DB.tickets||[]).map((t,i)=>`<div class="card flex-between"><div><b>${t.name}</b> | ${t.class}<br>${t.msg}<br><small>${t.date}</small></div><div><button class="btn btn-xs btn-green" onclick="resT(${i})">✅</button><button class="btn btn-xs btn-red" onclick="delT(${i})">🗑️</button></div></div>`).join('')}<h5>💳 Thanh toán</h5>${(DB.payments||[]).map((p,i)=>`<div class="card flex-between"><div><b>${p.u}</b><br>${p.img?`<img src="${p.img}" style="max-width:150px;max-height:150px;border-radius:8px">`:''}<br><small>${p.date} (${p.status})</small></div><div><textarea id="paynote-${i}" placeholder="Ghi chú" style="min-height:40px">${p.note||''}</textarea><button class="btn btn-xs btn-green" onclick="confirmPay(${i})">✅</button><button class="btn btn-xs btn-red" onclick="delPay(${i})">🗑️</button></div></div>`).join('')}`;};
+const confirmReg=i=>{DB.registrations[i].status='approved';save('/registrations',DB.registrations);navAd('support');};
+const delReg=i=>{DB.registrations.splice(i,1);save('/registrations',DB.registrations);navAd('support');};
+const delPWR=i=>{DB.pw_requests.splice(i,1);save('/pw_requests',DB.pw_requests);navAd('support');};
+const resT=i=>{DB.tickets[i].status='resolved';save('/tickets',DB.tickets);navAd('support');};
+const delT=i=>{DB.tickets.splice(i,1);save('/tickets',DB.tickets);navAd('support');};
+const confirmPay=i=>{const note=$('paynote-'+i).value;DB.payments[i].status='confirmed';DB.payments[i].note=note;save('/payments',DB.payments);const u=DB.payments[i].u;if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};const f=DB.data[u].fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};f.logs.unshift(new Date().toLocaleDateString()+': Đã XN - '+note);DB.data[u].fee=f;save(`/data/${u}`,DB.data[u]);navAd('support');};
+const delPay=i=>{DB.payments.splice(i,1);save('/payments',DB.payments);navAd('support');};
+
+// ===== AD: SETTINGS =====
+const adSettings=c=>{const admins=DB.admins||[];c.innerHTML=`<div class="card"><h4>🔧 Cài đặt chung</h4><input id="cfg-pin" value="${DB.config?.adminPin||'2468'}" type="password" maxlength="4" placeholder="PIN Admin"><input id="cfg-reset" value="${DB.config?.resetCode||'RESET123'}" placeholder="Mã Reset"><button class="btn btn-sm btn-green" onclick="svCfg()">💾</button></div><div class="card"><h4>👑 Quản lý Admin</h4>${admins.map((a,i)=>`<div class="card flex-between"><div><b>${a.u}</b> <span class="tag ${a.role==='main'?'tag-on':'tag-off'}">${a.role==='main'?'Chính':'Phụ'}</span>${isMainAdmin()&&a.role==='sub'?`<br><small>Quyền: ${(a.permissions||['schedule','notif','homework','exam','support']).join(', ')}</small>`:''}</div><div>${isMainAdmin()&&a.role==='sub'?`<button class="btn btn-xs btn-blue" onclick="editSubPerm(${i})">🔧</button>`:''}${isMainAdmin()?`<button class="btn btn-xs btn-red" onclick="delAdmin(${i})">🗑️</button>`:''}</div></div>`).join('')}${isMainAdmin()?`<div class="form-row"><input id="new-adm-u" placeholder="Username"><input id="new-adm-p" type="password" placeholder="MK"><select id="new-adm-role"><option value="sub">Phụ</option><option value="main">Chính</option></select></div><button class="btn btn-sm btn-blue" onclick="addAdmin()">+ Thêm</button>`:''}</div><div class="card"><h4>✏️ Sửa HV</h4><select id="edhv-sel" onchange="loadHVEdit()"><option value="">Chọn HV</option>${(DB.hv||[]).map(h=>`<option value="${h.u}">${h.n} (${h.u})</option>`).join('')}</select><div id="edhv-form" style="display:none"><input id="edhv-name" placeholder="Họ tên"><input id="edhv-class" placeholder="Lớp"><input id="edhv-email" placeholder="Email"><input id="edhv-pw" type="password" placeholder="MK mới"><button class="btn btn-sm btn-green" onclick="saveHVEdit()">💾</button></div></div><div class="card"><h4>📚 Khoá học</h4>${(DB.config?.courses||[]).map((co,i)=>`<div class="flex-between"><span>${co}</span><button class="btn btn-xs btn-red" onclick="delCourse(${i})">🗑️</button></div>`).join('')}<input id="new-course" placeholder="Tên khoá học"><button class="btn btn-sm btn-green" onclick="addCourse()">+ ${t('addCourse')}</button></div>`;};
+const svCfg=()=>{DB.config.adminPin=$('cfg-pin').value;DB.config.resetCode=$('cfg-reset').value;save('/config',DB.config);};
+const addAdmin=()=>{if(!isMainAdmin())return alert(t('permissionDenied'));const u=$('new-adm-u').value.trim(),p=$('new-adm-p').value.trim(),role=$('new-adm-role').value;if(!u||!p)return alert('Nhập đủ!');if((DB.admins||[]).find(a=>a.u===u))return alert(t('usernameTaken'));if(!DB.admins)DB.admins=[];DB.admins.push({u,p:H(p),pin:role==='main'?'1111':'2468',role});save('/admins',DB.admins);navAd('settings');};
+const delAdmin=i=>{if(!isMainAdmin())return alert(t('permissionDenied'));if(DB.admins.length<=1)return alert(t('cannotDeleteLast'));if(confirm(t('deleteAdminConfirm'))){DB.admins.splice(i,1);save('/admins',DB.admins);navAd('settings');}};
+const editSubPerm=i=>{if(!isMainAdmin())return alert(t('permissionDenied'));const adm=DB.admins[i],allPerms=[{id:'schedule',name:'📅 Lịch học'},{id:'notif',name:'📢 Thông báo'},{id:'homework',name:'📝 Bài tập'},{id:'exam',name:'📄 Thi cử'},{id:'students',name:'👥 Học viên'},{id:'progress',name:'📋 Chương trình'},{id:'fee',name:'💰 Học phí'},{id:'results',name:'📊 Kết quả'},{id:'support',name:'🆘 Hỗ trợ'},{id:'settings',name:'🔧 Cài đặt'}],cp=adm.permissions||['schedule','notif','homework','exam','support'];$('mod').innerHTML=`<h4>🔧 Quyền của ${adm.u}</h4><div style="max-height:45vh;overflow-y:auto">${allPerms.map(p=>`<label style="display:flex;align-items:center;padding:8px;cursor:pointer;border-bottom:1px solid var(--border)"><input type="checkbox" id="perm-${p.id}" ${cp.includes(p.id)?'checked':''} style="width:auto;margin-right:10px">${p.name}</label>`).join('')}</div><button class="btn btn-sm btn-green" onclick="saveSubPerm(${i})">💾</button><button class="btn btn-sm btn-outline" onclick="clsMod()">ĐÓNG</button>`;$('ovl').classList.add('active');$('mod').classList.add('active');};
+const saveSubPerm=i=>{const allPerms=['schedule','notif','homework','exam','students','progress','fee','results','support','settings'];DB.admins[i].permissions=allPerms.filter(p=>$('perm-'+p)?.checked);save('/admins',DB.admins);clsMod();alert('✅');navAd('settings');};
+const addCourse=()=>{const c=$('new-course').value.trim();if(!c)return;if(!DB.config.courses)DB.config.courses=[];DB.config.courses.push(c);save('/config/courses',DB.config.courses);navAd('settings');};
+const delCourse=i=>{DB.config.courses.splice(i,1);save('/config/courses',DB.config.courses);navAd('settings');};
+const loadHVEdit=()=>{const hv=(DB.hv||[]).find(h=>h.u===$('edhv-sel').value);if(!hv)return;$('edhv-form').style.display='block';$('edhv-name').value=hv.n||'';$('edhv-class').value=hv.l||'';$('edhv-email').value=hv.email||'';$('edhv-pw').value='';$('edhv-form').dataset.u=hv.u;};
+const saveHVEdit=()=>{const hv=(DB.hv||[]).find(h=>h.u===$('edhv-form').dataset.u);if(!hv)return;hv.n=$('edhv-name').value;hv.l=$('edhv-class').value;hv.email=$('edhv-email').value;const npw=$('edhv-pw').value.trim();if(npw)hv.p=H(npw);save('/hv',DB.hv);navAd('settings');};
+
+// ===== STUDENT =====
+const navSt=pg=>{
+    document.querySelectorAll('#bnav .ni').forEach(el=>el.classList.remove('ac'));
+    const idx={home:0,schedule:1,me:2,homework:3,exam:4};
+    if(document.querySelectorAll('#bnav .ni')[idx[pg]])document.querySelectorAll('#bnav .ni')[idx[pg]].classList.add('ac');
+    const m=$('hv-main');if(!DB.data)DB.data={};const d=DB.data[U.u]||{};
+    if(pg==='home'){
+        m.innerHTML=`<div class="card" style="text-align:center"><h3>${U.loginCount<=1?t('welcome1',U.n):t('welcome2',U.n)}</h3></div><h4>📢 Thông báo</h4>`;
+        (DB.notif_history||[]).slice(0,5).forEach(n=>m.innerHTML+=`<div class="card"><small>${n.date}</small><br>${n.msg}</div>`);
+        (DB.personal_notif?.[U.u]||[]).slice(0,5).forEach(n=>m.innerHTML+=`<div class="card"><small>${n.date}</small><br>${n.msg}</div>`);
+        if(d['2b_new']){d['2b_new']=false;save(`/data/${U.u}/2b_new`,false);}
+    } else if(pg==='schedule'){
+        const sk=DB.sked||{},now=new Date();
+        let canReg=sk.isOpen;
+        if(sk.openTime&&new Date(sk.openTime)>now)canReg=false;
+        if(sk.closeTime&&new Date(sk.closeTime)<now)canReg=false;
+        m.innerHTML=`<h4>📅 ${sk.t||'Lịch học'}</h4>`;
+        if(canReg)m.innerHTML+=`<p style="font-size:10px;color:var(--sub)">⚠️ Cần đăng ký ít nhất 2 tiết</p><div class="grid3">${(sk.slots||[]).map((s,i)=>`<div class="menu-card"><label style="cursor:pointer"><input type="checkbox" id="chk-${i}" ${(s.r||[]).includes(U.u)?'checked':''}><br><b>${s.n}</b><br>${s.d}<br>${s.ti}<br><small>${(s.r||[]).length}/${s.c}</small></label></div>`).join('')}</div><button class="btn btn-sm btn-green" onclick="regMultiple()">${t('regMany')}</button>`;
+        else m.innerHTML+=`<p>⛔ Không trong thời gian đăng ký</p>`;
+        m.innerHTML+=`<h5>📌 Đã ĐK:</h5>${(sk.slots||[]).filter(s=>(s.r||[]).includes(U.u)).map(s=>`<div class="card"><span>✅ ${s.n} - ${s.d} ${s.ti}</span></div>`).join('')||`<p>${t('noReg')}</p>`}<button class="btn btn-sm btn-outline" onclick="viewRegHistory()">${t('viewHistory')}</button>`;
+    } else if(pg==='homework'){
+        m.innerHTML=`<h4>📝 Bài tập</h4>`;
+        const now=new Date();
+        (DB.hw_list||[]).filter(h=>!h.assignedTo||h.assignedTo.length===0||h.assignedTo.includes(U.u)).forEach((h,i)=>{
+            let canDo=true,status='';
+            if(h.start&&now<new Date(h.start)){status='<br><span style="color:#e8b730">⏳ Chưa đến hạn</span>';canDo=false;}
+            if(h.end&&now>new Date(h.end)){status='<br><span style="color:#e84545">⛔ Đã hết hạn</span>';canDo=false;}
+            const subs=(DB.submissions||[]).filter(s=>s.u===U.u&&s.n===h.n&&s.type==='hw');
+            if(subs.length>=(h.slot||1)){status=`<br><span style="color:#e84545">⚠️ ${t('slotLimit',h.slot||1)}</span>`;canDo=false;}
+            m.innerHTML+=`<div class="card"><b>${h.n}</b><br><small>${h.start||'?'}→${h.end||'?'} | ${h.t||30}ph | Slot:${h.slot||1} (${subs.length}/${h.slot||1})</small>${status}<br>${canDo?`<button class="btn btn-sm btn-blue" onclick="stHW(${i})">LÀM</button>`:''}<button class="btn btn-sm btn-outline" onclick="vwMySub('${h.n}')">📋 Đã nộp (${subs.length})</button></div>`;
+        });
+    } else if(pg==='exam'){
+        m.innerHTML=`<h4>📄 Thi cử</h4>${(DB.exams||[]).filter(x=>x.st=='1').map((x,i)=>{const subs=(DB.submissions||[]).filter(s=>s.u===U.u&&s.n===x.n&&s.type==='exam'),s=x.slot||1;return`<div class="card"><b>${x.n}</b> <small>(${x.t}ph - Slot:${s}) (${subs.length}/${s})</small>${subs.length<s?`<button class="btn btn-sm btn-gold" onclick="stEx(${i})">VÀO THI</button>`:`<br><span style="color:#e84545">⚠️ ${t('slotLimit',s)}</span>`}</div>`;}).join('')}<h5>Đã thi:</h5>${(DB.submissions||[]).filter(s=>s.u===U.u&&s.type==='exam').map(s=>{const ex=(DB.exams||[]).find(x=>x.n===s.n);return`<div class="card"><b>${s.n}</b> - ${s.date}<br>${s.scored?`TN: ${s.mcqScore||'?'} | TL: ${s.essayScore||'?'}`:'Chờ chấm'}${ex&&ex.st=='0'&&s.scored?`<br><button class="btn btn-xs btn-outline" onclick="vwExRes('${s.n}')">👁 Xem</button>`:''}</div>`;}).join('')}`;
+    } else if(pg==='me'){
+        const avs=['👤','👨‍🎓','👩‍🎓','🧑‍🎓','👨‍💻','👩‍💻','🧑‍💻','🦊','🐱','🐶','🐼','🐨','🦁','🐯','🐸','🐵','🐔','🦄','🐙','🦋'];
+        const f=DB.data?.[U.u]?.fee||{slots:0,rate:0,paid:0,extra:0,logs:[],bank:''};
+        const total=f.slots*f.rate+f.extra,debt=total-f.paid;
+        const selectedBank=f.bank?t('bank'+f.bank):'';
+        m.innerHTML=`<div class="avatar-section"><div class="avatar-img" onclick="$('avp').style.display='flex'">${U.avatar||'👤'}</div><div id="avp" style="display:none" class="icon-picker">${avs.map(a=>`<span onclick="selAv('${a}')" class="${U.avatar===a?'sel':''}">${a}</span>`).join('')}</div><button class="btn btn-sm btn-outline" onclick="saveAv()">${t('saveAv')}</button><div style="margin-top:8px"><b>${t('fullName')}:</b> ${U.n}<br><b>${t('class_')}:</b> ${U.l||'Chưa có'}<br><b>${t('language')}:</b> <select onchange="setLang(this.value)" style="width:auto;display:inline"><option value="vi" ${currentLang==='vi'?'selected':''}>Tiếng Việt</option><option value="en" ${currentLang==='en'?'selected':''}>English</option></select></div></div><div class="card" onclick="vwScore()"><h5>📊 Kết quả</h5></div><div class="card" onclick="vwProg()"><h5>📋 Chương trình</h5></div><div class="card" onclick="vwFee()"><h5>💰 Học phí ${debt<=0?'✅':debt>0?'⚠️':''} ${selectedBank?`(${selectedBank})`:''}</h5></div><div class="card" onclick="showMod('support')"><h5>💬 ${t('support')}</h5></div><button class="btn btn-red" onclick="logout()">🚪 ${t('logout')}</button>`;
+    }
+};
+const selAv=a=>{selectedAvatar=a;U.avatar=a;navSt('me');};
+const saveAv=()=>{if(selectedAvatar){const h=DB.hv.find(h=>h.u===U.u);if(h){h.avatar=selectedAvatar;save('/hv',DB.hv);}}};
+const vwScore=()=>{const d=DB.data[U.u]||{};$('hv-main').innerHTML=`<h4>📊 Bảng điểm</h4><h5>Tích lũy</h5><table>${(d.pts_tl||[]).map(p=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td></tr>`).join('')}</table><h5>Kiểm tra</h5><table>${(d.pts_kt||[]).map(p=>`<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td></tr>`).join('')}</table><button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;};
+const vwProg=()=>{$('hv-main').innerHTML=`<h4>📋 Chương trình</h4><div class="card" style="white-space:pre-wrap">${DB.data?.[U.u]?.prog||'Chưa có'}</div><button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;};
+const vwFee=()=>{
+    const f=DB.data?.[U.u]?.fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};
+    $('hv-main').innerHTML=`<h4>💰 Học phí</h4><div class="card"><b>Tổng: ${(f.slots*f.rate+f.extra).toLocaleString()}đ</b><br>Đã nộp: ${f.paid.toLocaleString()}đ<br>Nợ: <b style="color:${(f.slots*f.rate+f.extra-f.paid)<=0?'var(--green)':'var(--red)'}">${(f.slots*f.rate+f.extra-f.paid).toLocaleString()}đ</b><hr style="border-color:var(--border);margin:8px 0">${['1','2'].map(n=>{const fi=DB.config?.['bankInfo'+(n==='1'?'':'2')]||'';return fi?`<div class="card"><h5>${t('bank'+n)}</h5><div style="white-space:pre-wrap;font-size:11px">${fi}</div>${DB.config?.['bankImg'+n]?`<img src="${DB.config['bankImg'+n]}" style="max-width:100%;border-radius:8px">`:''}</div>`:'';}).join('')}<button class="btn btn-sm btn-gold" onclick="showMod('pay')">💳 ĐÓNG TIỀN</button></div><h5>LS đóng</h5>${(f.logs||[]).map(l=>`<div class="card"><small>${l}</small></div>`).join('')||'<p>Chưa có</p>'}<button class="btn btn-sm btn-outline" onclick="navSt('me')">←</button>`;
+};
+
+const regMultiple=()=>{const slots=DB.sked.slots,selected=[];slots.forEach((s,i)=>{if($('chk-'+i)?.checked)selected.push(i);});if(selected.length<2)return alert('⚠️ Cần đăng ký ít nhất 2 tiết!');slots.forEach(s=>{s.r=(s.r||[]).filter(u=>u!==U.u);});selected.forEach(i=>slots[i].r.push(U.u));save('/sked/slots',DB.sked.slots);navSt('schedule');};
+const viewRegHistory=()=>{const hist=DB.sked?.history||[],m=$('hv-main');if(!hist.length){m.innerHTML=`<h4>${t('history')}</h4><p>Không có lịch sử.</p><button class="btn btn-sm btn-outline" onclick="navSt('schedule')">←</button>`;return;}m.innerHTML=`<h4>📜 ${t('history')}</h4>${hist.map((h,i)=>`<div class="card" onclick="viewHistoryWeek(${i})" style="cursor:pointer"><b>${h.t}</b> - ${h.date}<br><small>Đã đăng ký: ${(h.slots||[]).filter(s=>(s.r||[]).includes(U.u)).length} tiết</small></div>`).join('')}<button class="btn btn-sm btn-outline" onclick="navSt('schedule')">←</button>`;};
+const viewHistoryWeek=idx=>{const h=DB.sked.history[idx],m=$('hv-main');m.innerHTML=`<h4>📅 ${h.t} (${h.date})</h4>${(h.slots||[]).map(s=>`<div class="card"><b>${(s.r||[]).includes(U.u)?'✅':'⬜'} ${s.n}</b> | ${s.d} ${s.ti} | ${(s.r||[]).length}/${s.c}</div>`).join('')||'<p>Không có slot.</p>'}<button class="btn btn-sm btn-outline" onclick="viewRegHistory()">←</button>`;};
+
+// ===== HOMEWORK/EXAM =====
+const stHW=i=>{const h=DB.hw_list[i];stm=new Date();timeLeft=(h.t||30)*60;startTimer();renderHWExam('hw',h);};
+const stEx=i=>{const x=DB.exams[i];if(prompt('🔒 MK đề:')!==x.p)return alert('❌ Sai!');stm=new Date();timeLeft=(x.t||45)*60;startTimer();renderHWExam('exam',x);};
+const startTimer=()=>{clearInterval(timerInterval);timerInterval=setInterval(()=>{timeLeft--;const el=$('timer');if(el){el.innerText=`⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;if(timeLeft<60)el.classList.add('warning');if(timeLeft<=0){clearInterval(timerInterval);autoSubmit();}}},1000);};
+const autoSubmit=()=>{alert(t('autoSubmit'));$('exam-form')?doSubmitEx():doSubmitHW();};
+const renderHWExam=(type,data)=>{const total=(data.mcq||[]).length+(data.essay||[]).length;let h=`<div class="timer" id="timer">⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}</div><h4>${type==='hw'?'📝':'📄'} ${data.n}</h4>`;if(total>0){h+=`<div class="question-nav" id="q-nav">`;for(let j=0;j<total;j++)h+=`<span onclick="goToQ(${j})" id="qbtn-${j}">${j+1}</span>`;h+=`</div>`;}h+=`<form id="exam-form">`;let qIdx=0;if(data.mcq)data.mcq.forEach((m,j)=>{h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${m.pt}đ):</b> ${m.q}<br><label><input type="radio" name="mq${j}" value="A" onchange="markQ(${qIdx})"> A.${m.a}</label><br><label><input type="radio" name="mq${j}" value="B" onchange="markQ(${qIdx})"> B.${m.b}</label><br><label><input type="radio" name="mq${j}" value="C" onchange="markQ(${qIdx})"> C.${m.c}</label><br><label><input type="radio" name="mq${j}" value="D" onchange="markQ(${qIdx})"> D.${m.d}</label><br><button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;qIdx++;});if(data.essay)data.essay.forEach((e,j)=>{h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${e.pt}đ):</b> ${e.q||''}<br><textarea id="es${j}" oninput="markQ(${qIdx})"></textarea><button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;qIdx++;});h+=`</form><button class="btn btn-green" onclick="confirmSubmit('${type}','${data.n}')">📤 NỘP</button>`;$('hv-main').innerHTML=h;};
+const markQ=idx=>{$('qbtn-'+idx)?.classList.add('done');};
+const flagQ=idx=>{$('qbtn-'+idx)?.classList.toggle('flagged');};
+const goToQ=idx=>{$('q-'+idx)?.scrollIntoView({behavior:'smooth'});};
+const confirmSubmit=(type,n)=>{const data=type==='hw'?DB.hw_list.find(h=>h.n===n):DB.exams.find(e=>e.n===n);let unanswered=[],qIdx=0;if(data.mcq)data.mcq.forEach((_,i)=>{if(!document.querySelector(`input[name="mq${i}"]:checked`))unanswered.push(qIdx+1);qIdx++;});if(data.essay)data.essay.forEach((_,i)=>{if(!$('es'+i)?.value.trim())unanswered.push(qIdx+1);qIdx++;});if(unanswered.length>0){if(!confirm(t('checkUnanswered')+'\n'+unanswered.join(', ')+'\n\n'+t('sureSubmit')))return;}else if(!confirm(t('sureSubmit')))return;clearInterval(timerInterval);type==='hw'?doSubmitHW():doSubmitEx();};
+const doSubmitHW=()=>{const h=DB.hw_list.find(hw=>$('exam-form'));if(!h)return;let ans={mcq:[],essay:[]};if(h.mcq)h.mcq.forEach((_,i)=>{ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'');});if(h.essay)h.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});const d=Math.floor((new Date()-stm)/1000);if(!DB.submissions)DB.submissions=[];DB.submissions.push({u:U.u,type:'hw',n:h.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s'});save('/submissions',DB.submissions);navSt('homework');};
+const doSubmitEx=()=>{const x=DB.exams.find(e=>$('exam-form'));if(!x)return;let ans={mcq:[],essay:[]},mcqScore=0;if(x.mcq)x.mcq.forEach((m,i)=>{const v=(document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'';ans.mcq.push(v);if(v===m.ans)mcqScore+=m.pt;});if(x.essay)x.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});const d=Math.floor((new Date()-stm)/1000);if(!DB.submissions)DB.submissions=[];DB.submissions.push({u:U.u,type:'exam',n:x.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s',mcqScore,essayScore:0,scored:false});save('/submissions',DB.submissions);alert(`✅ Đã nộp!\nĐiểm TN: ${mcqScore}đ\nTL: Chờ chấm`);navSt('exam');};
+const vwMySub=n=>{const ms=(DB.submissions||[]).filter(s=>s.u===U.u&&s.n===n&&s.type==='hw');$('hv-main').innerHTML=`<h4>📋 ${n} (${ms.length})</h4>${ms.map(s=>{let ans='';try{const a=JSON.parse(s.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=s.con;}return`<div class="card"><small>${s.date}</small><pre style="white-space:pre-wrap">${ans}</pre></div>`;}).join('')}<button class="btn btn-outline" onclick="navSt('homework')">←</button>`;};
+const vwExRes=n=>{const sub=(DB.submissions||[]).find(s=>s.u===U.u&&s.n===n&&s.type==='exam');if(!sub)return;let ans='';try{const a=JSON.parse(sub.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=sub.con;}$('hv-main').innerHTML=`<h4>📄 ${n}</h4><div class="card"><pre style="white-space:pre-wrap">${ans}</pre><small>${sub.date} | TN:${sub.mcqScore||'?'}đ | TL:${sub.essayScore||'?'}đ</small></div><button class="btn btn-outline" onclick="navSt('exam')">←</button>`;};
+
+loadDB();
+</script>
+</body>
+</html>
