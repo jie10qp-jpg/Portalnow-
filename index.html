@@ -280,9 +280,10 @@
 const fbConfig={apiKey:"AIzaSyB2GSKsrFcLlf3IY8TxRH6tXhWyg3Jh-Io",authDomain:"portalnow-16452.firebaseapp.com",databaseURL:"https://portalnow-16452-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"portalnow-16452"};
 let dbRef; try{firebase.initializeApp(fbConfig);dbRef=firebase.database();}catch(e){alert('Firebase error: '+e.message);}
 
-const H=t=>CryptoJS.SHA256(t).toString(),$=id=>document.getElementById(id);
-let U=null,DB={},stm=null,timerInterval=null,timeLeft=0,_mcq=[],_essay=[],_hwMcq=[],_hwEssay=[],currentLang='vi',selectedAvatar=null,currentTheme='dark';
+const H=t=>CryptoJS.SHA256(t).toString(),$=id=>document.getElementById(id);let U=null,DB={},stm=null,timerInterval=null,timeLeft=0,_mcq=[],_essay=[],_hwMcq=[],_hwEssay=[],currentLang='vi',selectedAvatar=null,currentTheme='dark';
 let autoSaveInterval=null;
+let currentWorkType = null;   // 'hw' hoặc 'exam'
+let currentWorkName = null;   // tên bài tập/đề thi đang làm
 
 // Anti pull-to-refresh
 let lastTouchY=0;
@@ -389,16 +390,134 @@ const editStReg=i=>{const s=DB.sked.slots[i];$('ad-content').innerHTML=`<div cla
 const svStReg=i=>{const r=[];for(let o of $('reg-sel').options)if(o.selected)r.push(o.value);DB.sked.slots[i].r=r;save('/sked/slots',DB.sked.slots);navAd('schedule');};
 
 // ===== AD: NOTIF =====
-const adNotif=c=>{c.innerHTML=`<div class="card fade-in"><h4>📢 Thông báo chung</h4><div class="rich-toolbar"><button onclick="wrapTag('b')"><b>B</b></button><button onclick="wrapTag('i')"><i>I</i></button><button onclick="wrapTag('span style=color:red')">🔴</button><button onclick="wrapTag('span style=color:blue')">🔵</button><button onclick="wrapTag('span style=color:green')">🟢</button></div><textarea id="nfg" onkeyup="applyShortcuts('nfg')"></textarea><button class="btn btn-sm btn-blue" onclick="sendGN()">GỬI</button></div><div class="card fade-in"><h4>📨 Riêng</h4><select id="nft"><option value="">Chọn HV</option>${(DB.hv||[]).map(h=>`<option value="${h.u}">${h.n}</option>`).join('')}</select><textarea id="nfp"></textarea><button class="btn btn-sm btn-gold" onclick="sendPN()">GỬI</button></div><div class="card fade-in"><h4>⚡ Phím tắt</h4><div class="form-row"><input id="sc-key" placeholder="Kí tự"><textarea id="sc-val" placeholder="Nội dung"></textarea></div><button class="btn btn-sm btn-green" onclick="addSC()">+</button>${(DB.shortcuts||[]).map((s,i)=>`<div class="card flex-between"><div><b>${s.key}</b> → ${s.val}</div><button class="btn btn-xs btn-red" onclick="delSC(${i})">X</button></div>`).join('')}</div><h4>Lịch sử</h4>${(DB.notif_history||[]).map((n,i)=>`<div class="card fade-in flex-between"><div><small>${n.date}</small><br>${n.msg}</div><button class="btn btn-xs btn-red" onclick="delNf(${i})">🗑️</button></div>`).join('')}`;};
+const adNotif = c => {
+    // 1. Phần giao diện chính (Thông báo chung, Riêng, Phím tắt)
+    c.innerHTML = `
+    <div class="card fade-in">
+        <h4>📢 Thông báo chung</h4>
+        <div class="rich-toolbar">
+            <button onclick="wrapTag('b')"><b>B</b></button>
+            <button onclick="wrapTag('i')"><i>I</i></button>
+            <button onclick="wrapTag('span style=color:red')">🔴</button>
+            <button onclick="wrapTag('span style=color:blue')">🔵</button>
+            <button onclick="wrapTag('span style=color:green')">🟢</button>
+        </div>
+        <textarea id="nfg" onkeyup="applyShortcuts('nfg')"></textarea>
+        <button class="btn btn-sm btn-blue" onclick="sendGN()">GỬI</button>
+    </div>
+
+    <div class="card fade-in">
+        <h4>📨 Gửi riêng</h4>
+        <select id="nft">
+            <option value="">Chọn HV</option>
+            ${(DB.hv || []).map(h => `<option value="${h.u}">${h.n}</option>`).join('')}
+        </select>
+        <textarea id="nfp"></textarea>
+        <button class="btn btn-sm btn-gold" onclick="sendPN()">GỬI</button>
+    </div>
+
+    <div class="card fade-in">
+        <h4>⚡ Phím tắt</h4>
+        <div class="form-row">
+            <input id="sc-key" placeholder="Kí tự">
+            <textarea id="sc-val" placeholder="Nội dung"></textarea>
+        </div>
+        <button class="btn btn-sm btn-green" onclick="addSC()">+</button>
+        ${(DB.shortcuts || []).map((s, i) => `
+            <div class="card flex-between">
+                <div><b>${s.key}</b> → ${s.val}</div>
+                <button class="btn btn-xs btn-red" onclick="delSC(${i})">X</button>
+            </div>
+        `).join('')}
+    </div>
+
+    <hr>
+    
+    <h4>📜 Nhật ký thông báo chung</h4>
+    <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+        ${(DB.notif_history || []).length > 0 
+            ? DB.notif_history.map((n, i) => `
+                <div class="card fade-in flex-between" style="margin-bottom: 5px; padding: 8px;">
+                    <div style="font-size: 0.9em;">
+                        <small style="color: #888;">${n.date}</small>
+                        <div style="margin-top: 4px;">${n.msg}</div>
+                    </div>
+                    <button class="btn btn-xs btn-red" onclick="delNf(${i})" title="Xóa">🗑️</button>
+                </div>
+            `).join('')
+            : '<p style="text-align:center; color:#888;">Chưa có lịch sử thông báo.</p>'
+        }
+    </div>
+
+    <hr>
+
+    <h4>📬 Quản lý thông báo riêng theo HV</h4>
+    <select id="pn-select-hv" onchange="showPNList(this.value)">
+        <option value="">-- Chọn học viên để xem --</option>
+        ${(DB.hv || []).map(h => `<option value="${h.u}">${h.n} (${h.u})</option>`).join('')}
+    </select>
+    <div id="pn-list-container" style="margin-top: 10px;"></div>`;
+};
+
+// Hàm hiển thị danh sách thông báo riêng của 1 học viên
+const showPNList = (u) => {
+    const container = document.getElementById('pn-list-container');
+    if (!u) { container.innerHTML = ''; return; }
+     $('pn-select-hv').value = u;
+    const list = (DB.personal_notif && DB.personal_notif[u]) ? DB.personal_notif[u] : [];
+    
+    if (list.length === 0) {
+        container.innerHTML = '<p style="color:#888; padding: 10px;">Chưa có thông báo riêng cho học viên này.</p>';
+        return;
+    }
+
+    container.innerHTML = list.map((n, i) => `
+        <div class="card fade-in flex-between" style="margin-bottom: 5px; padding: 8px;">
+            <div><small style="color: #888;">${n.date}</small><br>${n.msg}</div>
+            <div>
+                <button class="btn btn-xs btn-gold" onclick="showMod('editPN',{u:'${u}',index:${i}})">✏️</button>
+                <button class="btn btn-xs btn-red" onclick="delPN('${u}',${i})">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Sửa thông báo riêng (Tối ưu để không reload trang)
+const saveEditPN = (u, i) => {
+    DB.personal_notif[u][i].msg = $('epn-msg').value;
+    save('/personal_notif', DB.personal_notif);
+    clsMod();
+    showPNList(u); // Chỉ cập nhật lại danh sách đang xem
+};
+
+// Xóa thông báo riêng (Tối ưu để không reload trang)
+const delPN = (u, i) => {
+    if (confirm('Bạn có chắc muốn xóa thông báo này?')) {
+        DB.personal_notif[u].splice(i, 1);
+        save('/personal_notif', DB.personal_notif);
+        showPNList(u); // Chỉ cập nhật lại danh sách đang xem
+    }
+};
+
+
 const wrapTag=tag=>{const ta=$('nfg'),s=ta.selectionStart,e=ta.selectionEnd,ot=tag.includes('=')?tag.split(' ')[0]+' '+tag.split(' ')[1]:tag;ta.value=ta.value.substring(0,s)+`<${tag}>${ta.value.substring(s,e)||'text'}</${ot.split(' ')[0].replace('<','')}>`+ta.value.substring(e);};
 const applyShortcuts=id=>{const ta=$(id);let v=ta.value;(DB.shortcuts||[]).forEach(s=>{v=v.replace(new RegExp(s.key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),s.val);});if(v!==ta.value)ta.value=v;};
 const addSC=()=>{const k=$('sc-key').value.trim(),v=$('sc-val').value.trim();if(!k||!v)return;if(!DB.shortcuts)DB.shortcuts=[];DB.shortcuts.push({key:k,val:v});save('/shortcuts',DB.shortcuts);navAd('notif');};
 const delSC=i=>{DB.shortcuts.splice(i,1);save('/shortcuts',DB.shortcuts);navAd('notif');};
-const sendGN=()=>{applyShortcuts('nfg');const m=$('nfg').value.trim();if(!m)return;if(!DB.notif_history)DB.notif_history=[];DB.notif_history.unshift({msg:m,date:new Date().toLocaleString()});(DB.hv||[]).forEach(h=>{if(!DB.data[h.u])DB.data[h.u]={};DB.data[h.u]['2b_new']=true;});save('/notif_history',DB.notif_history);navAd('notif');};
-const sendPN=()=>{const t=$('nft').value,m=$('nfp').value.trim();if(!t||!m)return;if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[t])DB.personal_notif[t]=[];DB.personal_notif[t].unshift({msg:m,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);navAd('notif');};
+const sendGN=()=>{applyShortcuts('nfg');const m=$('nfg').value.trim();if(!m)return;if(!DB.notif_history)DB.notif_history=[];DB.notif_history.unshift({msg:m,date:new Date().toLocaleString()});(DB.hv||[]).forEach(h=>{if(!DB.data[h.u])DB.data[h.u]={};DB.data[h.u]['2b_new']=true;});save('/notif_history',DB.notif_history);navAd('notif');};const sendPN = () => {
+    const t = $('nft').value, m = $('nfp').value.trim();
+    if (!t || !m) return;
+    if (!DB.personal_notif) DB.personal_notif = {};
+    if (!DB.personal_notif[t]) DB.personal_notif[t] = [];
+    DB.personal_notif[t].unshift({ msg: m, date: new Date().toLocaleString(), read: false });
+    save('/personal_notif', DB.personal_notif);
+    // 👇 THAY ĐỔI Ở ĐÂY
+    $('nfp').value = '';                  // Xóa nội dung đã nhập
+    showPNList(t);                        // Làm mới danh sách riêng của HV đó
+    $('pn-select-hv').value = t;          // Giữ select box đúng HV
+    alert('✅ Đã gửi!');
+};
 const delNf=i=>{DB.notif_history.splice(i,1);save('/notif_history',DB.notif_history);navAd('notif');};
-const saveEditPN=(u,i)=>{DB.personal_notif[u][i].msg=$('epn-msg').value;save('/personal_notif',DB.personal_notif);clsMod();navAd('notif');};
-const delPN=(u,i)=>{if(confirm('Xóa?')){DB.personal_notif[u].splice(i,1);save('/personal_notif',DB.personal_notif);navAd('notif');}};
 const sendAutoNotif=(u,msg)=>{if(!DB.personal_notif)DB.personal_notif={};if(!DB.personal_notif[u])DB.personal_notif[u]=[];DB.personal_notif[u].unshift({msg,date:new Date().toLocaleString(),read:false});save('/personal_notif',DB.personal_notif);};
 
 // ===== AD: HOMEWORK =====
@@ -453,9 +572,30 @@ const confirmReg=i=>{DB.registrations[i].status='approved';save('/registrations'
 const delReg=i=>{DB.registrations.splice(i,1);save('/registrations',DB.registrations);navAd('support');};
 const delPWR=i=>{DB.pw_requests.splice(i,1);save('/pw_requests',DB.pw_requests);navAd('support');};
 const resT=i=>{DB.tickets[i].status='resolved';save('/tickets',DB.tickets);navAd('support');};
-const delT=i=>{DB.tickets.splice(i,1);save('/tickets',DB.tickets);navAd('support');};
-const confirmPay=i=>{const note=$('paynote-'+i).value;DB.payments[i].status='confirmed';DB.payments[i].note=note;save('/payments',DB.payments);const u=DB.payments[i].u;if(!DB.data)DB.data={};if(!DB.data[u])DB.data[u]={};const f=DB.data[u].fee||{slots:0,rate:0,paid:0,extra:0,logs:[]};f.logs.unshift(new Date().toLocaleDateString()+': Đã XN - '+note);DB.data[u].fee=f;save(`/data/${u}`,DB.data[u]);navAd('support');};
-const delPay=i=>{DB.payments.splice(i,1);save('/payments',DB.payments);navAd('support');};
+const delT=i=>{DB.tickets.splice(i,1);save('/tickets',DB.tickets);navAd('support');};const confirmPay = i => {
+    const note = $('paynote-' + i).value;
+    
+    // Yêu cầu nhập số tiền xác nhận
+    const amount = parseInt(prompt('Nhập số tiền thực tế học viên đã đóng (VD: 500000):', '0')) || 0;
+
+    DB.payments[i].status = 'confirmed';
+    DB.payments[i].note = note;
+    save('/payments', DB.payments);
+
+    const u = DB.payments[i].u;
+    if (!DB.data) DB.data = {};
+    if (!DB.data[u]) DB.data[u] = {};
+
+    const f = DB.data[u].fee || { slots: 0, rate: 0, paid: 0, extra: 0, logs: [] };
+    
+    // Cập nhật số tiền và lịch sử
+    f.paid = (f.paid || 0) + amount; 
+    f.logs.unshift(new Date().toLocaleDateString() + `: Đã XN (${amount.toLocaleString()}đ) - ` + note);
+    
+    DB.data[u].fee = f;
+    save(`/data/${u}`, DB.data[u]);
+    navAd('support');
+};
 
 // ===== AD: BACKUP/RESTORE =====
 const adBackup=c=>{c.innerHTML=`<div class="card fade-in"><h4>💾 ${t('backup')}</h4><button class="btn btn-blue" onclick="downloadDB()">${t('downloadDB')}</button><button class="btn btn-gold" onclick="$('restore-file').click()">${t('uploadDB')}</button><input id="restore-file" type="file" accept=".json" style="display:none" onchange="restoreDB(this)"><p style="font-size:9px;color:var(--sub);margin-top:8px">⚠️ Khôi phục sẽ ghi đè toàn bộ dữ liệu hiện tại!</p></div>`;};
@@ -469,7 +609,21 @@ const addAdmin=()=>{if(!isMainAdmin())return alert(t('permissionDenied'));const 
 const delAdmin=i=>{if(!isMainAdmin())return alert(t('permissionDenied'));if(DB.admins.length<=1)return alert(t('cannotDeleteLast'));if(confirm(t('deleteAdminConfirm'))){DB.admins.splice(i,1);save('/admins',DB.admins);navAd('settings');}};
 const editSubPerm=i=>{if(!isMainAdmin())return alert(t('permissionDenied'));const adm=DB.admins[i],allPerms=[{id:'dashboard',name:'📈 Thống kê'},{id:'schedule',name:'📅 Lịch học'},{id:'notif',name:'📢 Thông báo'},{id:'homework',name:'📝 Bài tập'},{id:'exam',name:'📄 Thi cử'},{id:'students',name:'👥 Học viên'},{id:'progress',name:'📋 Chương trình'},{id:'fee',name:'💰 Học phí'},{id:'results',name:'📊 Kết quả'},{id:'support',name:'🆘 Hỗ trợ'},{id:'settings',name:'🔧 Cài đặt'},{id:'backup',name:'💾 Backup'}],cp=adm.permissions||['schedule','notif','homework','exam','support'];$('mod').innerHTML=`<h4>🔧 Quyền của ${adm.u}</h4><div style="max-height:45vh;overflow-y:auto">${allPerms.map(p=>`<label style="display:flex;align-items:center;padding:8px;cursor:pointer;border-bottom:1px solid var(--border)"><input type="checkbox" id="perm-${p.id}" ${cp.includes(p.id)?'checked':''} style="width:auto;margin-right:10px">${p.name}</label>`).join('')}</div><button class="btn btn-sm btn-green" onclick="saveSubPerm(${i})">💾</button><button class="btn btn-sm btn-outline" onclick="clsMod()">ĐÓNG</button>`;$('ovl').classList.add('active');$('mod').classList.add('active');};
 const saveSubPerm=i=>{const allPerms=['dashboard','schedule','notif','homework','exam','students','progress','fee','results','support','settings','backup'];DB.admins[i].permissions=allPerms.filter(p=>$('perm-'+p)?.checked);save('/admins',DB.admins);clsMod();alert('✅');navAd('settings');buildAdminMenu();};
-const addCourse=()=>{const c=$('new-course').value.trim();if(!c)return;if(!DB.config.courses)DB.config.courses=[];DB.config.courses.push(c);save('/config/courses',DB.config.courses);navAd('settings');};
+const addCourse = () => {
+    const c = $('new-course').value.trim();
+    if (!c) return;
+    if (!DB.config.courses) DB.config.courses = [];
+    
+    // Kiểm tra trùng lặp
+    if (DB.config.courses.includes(c)) { 
+        alert('Khóa học này đã tồn tại!'); 
+        return; 
+    }
+    
+    DB.config.courses.push(c);
+    save('/config/courses', DB.config.courses);
+    navAd('settings');
+};
 const delCourse=i=>{DB.config.courses.splice(i,1);save('/config/courses',DB.config.courses);navAd('settings');};
 const loadHVEdit=()=>{const hv=(DB.hv||[]).find(h=>h.u===$('edhv-sel').value);if(!hv)return;$('edhv-form').style.display='block';$('edhv-name').value=hv.n||'';$('edhv-class').value=hv.l||'';$('edhv-email').value=hv.email||'';$('edhv-pw').value='';$('edhv-form').dataset.u=hv.u;};
 const saveHVEdit=()=>{const hv=(DB.hv||[]).find(h=>h.u===$('edhv-form').dataset.u);if(!hv)return;hv.n=$('edhv-name').value;hv.l=$('edhv-class').value;hv.email=$('edhv-email').value;const npw=$('edhv-pw').value.trim();if(npw)hv.p=H(npw);save('/hv',DB.hv);navAd('settings');};
@@ -514,20 +668,153 @@ const viewRegHistory=()=>{const hist=DB.sked?.history||[],m=$('hv-main');if(!his
 const viewHistoryWeek=idx=>{const h=DB.sked.history[idx],m=$('hv-main');m.innerHTML=`<h4>📅 ${h.t} (${h.date})</h4>${(h.slots||[]).map(s=>`<div class="card"><b>${(s.r||[]).includes(U.u)?'✅':'⬜'} ${s.n}</b> | ${s.d} ${s.ti}</div>`).join('')||'<p>Không có.</p>'}<button class="btn btn-sm btn-outline" onclick="viewRegHistory()">←</button>`;};
 
 // ===== HOMEWORK/EXAM + AUTO-SAVE =====
-const stHW=i=>{const h=DB.hw_list[i];stm=new Date();timeLeft=(h.t||30)*60;startTimer();renderHWExam('hw',h);startAutoSave('hw',h.n);};
-const stEx=i=>{const x=DB.exams[i];if(prompt('🔒 MK đề:')!==x.p)return alert('❌ Sai!');stm=new Date();timeLeft=(x.t||45)*60;startTimer();renderHWExam('exam',x);startAutoSave('exam',x.n);};
-const startTimer=()=>{clearInterval(timerInterval);timerInterval=setInterval(()=>{timeLeft--;const el=$('timer');if(el){el.innerText=`⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;if(timeLeft<60)el.classList.add('warning');if(timeLeft<=0){clearInterval(timerInterval);clearInterval(autoSaveInterval);autoSubmit();}}},1000);};
-const startAutoSave=(type,n)=>{clearInterval(autoSaveInterval);autoSaveInterval=setInterval(()=>{let ans={mcq:[],essay:[]};if(type==='hw'){const h=DB.hw_list.find(hw=>hw.n===n);if(h?.mcq)h.mcq.forEach((_,i)=>{ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'');});if(h?.essay)h.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});}else{const x=DB.exams.find(e=>e.n===n);if(x?.mcq)x.mcq.forEach((_,i)=>{ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'');});if(x?.essay)x.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});}localStorage.setItem('autosave_'+U.u+'_'+n,JSON.stringify({type,ans,time:new Date().toISOString()}));},30000);};
-const autoSubmit=()=>{alert(t('autoSubmit'));clearInterval(autoSaveInterval);localStorage.removeItem('autosave_'+U.u+'_'+($('exam-form')?(DB.exams.find(e=>$('exam-form'))||{}).n:(DB.hw_list.find(hw=>$('exam-form'))||{}).n));$('exam-form')?doSubmitEx():doSubmitHW();};
+const stHW = i => {
+    const h = DB.hw_list[i];
+
+    // Kiểm tra thời gian mở đề
+    if (h.open_date && new Date() < new Date(h.open_date)) {
+        return alert('⏳ Bài tập này chưa đến giờ mở! Thời gian mở: ' + h.open_date);
+    }
+
+    currentWorkType = 'hw';
+    currentWorkName = h.n;
+    stm = new Date();
+    timeLeft = (h.t || 30) * 60;
+    startTimer();
+    renderHWExam('hw', h);
+    startAutoSave('hw', h.n);
+};
+const stEx = i => {
+    const x = DB.exams[i];
+
+    // 1. Kiểm tra thời gian mở đề trước
+    if (x.open_date && new Date() < new Date(x.open_date)) {
+        return alert('⏳ Đề thi này chưa đến giờ bắt đầu! Thời gian mở: ' + x.open_date);
+    }
+
+    // 2. Kiểm tra mật khẩu
+    if (prompt('🔒 MK đề:') !== x.p) return alert('❌ Sai!');
+
+    currentWorkType = 'exam';
+    currentWorkName = x.n;
+    stm = new Date();
+    timeLeft = (x.t || 45) * 60;
+    startTimer();
+    renderHWExam('exam', x);
+    startAutoSave('exam', x.n);
+};
+const startTimer=()=>{clearInterval(timerInterval);timerInterval=setInterval(()=>{timeLeft--;const el=$('timer');if(el){el.innerText=`⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;if(timeLeft<60)el.classList.add('warning');if(timeLeft<=0){clearInterval(timerInterval);clearInterval(autoSaveInterval);autoSubmit();}}},1000);};const startAutoSave = (type, n) => {
+    clearInterval(autoSaveInterval);
+    autoSaveInterval = setInterval(() => {
+        let ans = { mcq: [], essay: [] };
+        if (type === 'hw') {
+            const h = DB.hw_list.find(hw => hw.n === n);
+            if (h?.mcq) h.mcq.forEach((_, i) => {
+                ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`) || {}).value || '');
+            });
+            if (h?.essay) h.essay.forEach((_, i) => {
+                ans.essay.push($('es' + i)?.value || '');
+            });
+        } else {
+            const x = DB.exams.find(e => e.n === n);
+            if (x?.mcq) x.mcq.forEach((_, i) => {
+                ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`) || {}).value || '');
+            });
+            if (x?.essay) x.essay.forEach((_, i) => {
+                ans.essay.push($('es' + i)?.value || '');
+            });
+        }
+        // SỬA Ở ĐÂY: Thay n bằng currentWorkName để khớp với lúc xóa
+        localStorage.setItem('autosave_' + U.u + '_' + currentWorkName, JSON.stringify({ type, ans, time: new Date().toISOString() }));
+    }, 30000);
+};
+const autoSubmit = () => {
+    alert(t('autoSubmit'));
+    clearInterval(autoSaveInterval);
+    if (currentWorkName) {
+        localStorage.removeItem('autosave_' + U.u + '_' + currentWorkName);
+    }
+    if (currentWorkType === 'exam') {
+        doSubmitEx();
+    } else {
+        doSubmitHW();
+    }
+};
 const renderHWExam=(type,data)=>{const total=(data.mcq||[]).length+(data.essay||[]).length;let h=`<div class="timer" id="timer">⏱ ${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}</div><h4>${type==='hw'?'📝':'📄'} ${data.n}</h4>`;if(total>0){h+=`<div class="question-nav" id="q-nav">`;for(let j=0;j<total;j++)h+=`<span onclick="goToQ(${j})" id="qbtn-${j}">${j+1}</span>`;h+=`</div>`;}h+=`<form id="exam-form">`;let qIdx=0;if(data.mcq)data.mcq.forEach((m,j)=>{h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${m.pt}đ):</b> ${m.q}<br><label><input type="radio" name="mq${j}" value="A" onchange="markQ(${qIdx})"> A.${m.a}</label><br><label><input type="radio" name="mq${j}" value="B" onchange="markQ(${qIdx})"> B.${m.b}</label><br><label><input type="radio" name="mq${j}" value="C" onchange="markQ(${qIdx})"> C.${m.c}</label><br><label><input type="radio" name="mq${j}" value="D" onchange="markQ(${qIdx})"> D.${m.d}</label><br><button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;qIdx++;});if(data.essay)data.essay.forEach((e,j)=>{h+=`<div class="exam-block" id="q-${qIdx}"><b>Câu ${j+1} (${e.pt}đ):</b> ${e.q||''}<br><textarea id="es${j}" oninput="markQ(${qIdx})"></textarea><button type="button" class="btn btn-xs btn-outline" onclick="flagQ(${qIdx})">🚩</button></div>`;qIdx++;});h+=`</form><button class="btn btn-green" onclick="confirmSubmit('${type}','${data.n}')">📤 NỘP</button>`;$('hv-main').innerHTML=h;
     const saved=localStorage.getItem('autosave_'+U.u+'_'+data.n);
     if(saved){try{const a=JSON.parse(saved);if(a.type===type){if(a.ans.mcq)data.mcq?.forEach((_,i)=>{const radio=document.querySelector(`input[name="mq${i}"][value="${a.ans.mcq[i]||''}"]`);if(radio)radio.checked=true;});if(a.ans.essay)data.essay?.forEach((_,i)=>{const ta=$('es'+i);if(ta)ta.value=a.ans.essay[i]||'';});}}catch(e){}}};
 const markQ=idx=>{$('qbtn-'+idx)?.classList.add('done');};
 const flagQ=idx=>{$('qbtn-'+idx)?.classList.toggle('flagged');};
-const goToQ=idx=>{$('q-'+idx)?.scrollIntoView({behavior:'smooth'});};
-const confirmSubmit=(type,n)=>{const data=type==='hw'?DB.hw_list.find(h=>h.n===n):DB.exams.find(e=>e.n===n);let unanswered=[],qIdx=0;if(data.mcq)data.mcq.forEach((_,i)=>{if(!document.querySelector(`input[name="mq${i}"]:checked`))unanswered.push(qIdx+1);qIdx++;});if(data.essay)data.essay.forEach((_,i)=>{if(!$('es'+i)?.value.trim())unanswered.push(qIdx+1);qIdx++;});if(unanswered.length>0){if(!confirm(t('checkUnanswered')+'\n'+unanswered.join(', ')+'\n\n'+t('sureSubmit')))return;}else if(!confirm(t('sureSubmit')))return;clearInterval(timerInterval);clearInterval(autoSaveInterval);localStorage.removeItem('autosave_'+U.u+'_'+n);type==='hw'?doSubmitHW():doSubmitEx();};
-const doSubmitHW=()=>{const h=DB.hw_list.find(hw=>$('exam-form'));if(!h)return;let ans={mcq:[],essay:[]};if(h.mcq)h.mcq.forEach((_,i)=>{ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'');});if(h.essay)h.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});const d=Math.floor((new Date()-stm)/1000);if(!DB.submissions)DB.submissions=[];DB.submissions.push({u:U.u,type:'hw',n:h.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s'});save('/submissions',DB.submissions);navSt('homework');};
-const doSubmitEx=()=>{const x=DB.exams.find(e=>$('exam-form'));if(!x)return;let ans={mcq:[],essay:[]},mcqScore=0;if(x.mcq)x.mcq.forEach((m,i)=>{const v=(document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'';ans.mcq.push(v);if(v===m.ans)mcqScore+=m.pt;});if(x.essay)x.essay.forEach((_,i)=>{ans.essay.push($('es'+i)?.value||'');});const d=Math.floor((new Date()-stm)/1000);if(!DB.submissions)DB.submissions=[];DB.submissions.push({u:U.u,type:'exam',n:x.n,con:JSON.stringify(ans),date:new Date().toLocaleString(),dur:Math.floor(d/60)+'p'+d%60+'s',mcqScore,essayScore:0,scored:false});save('/submissions',DB.submissions);navSt('exam');};
+const goToQ=idx=>{$('q-'+idx)?.scrollIntoView({behavior:'smooth'});};const confirmSubmit=(type,n)=>{
+    // Cập nhật biến toàn cục (phòng trường hợp gọi từ đâu đó mà chưa set)
+    currentWorkType = type;
+    currentWorkName = n;
+
+    const data=type==='hw'?DB.hw_list.find(h=>h.n===n):DB.exams.find(e=>e.n===n);
+    let unanswered=[],qIdx=0;
+    if(data.mcq)data.mcq.forEach((_,i)=>{
+        if(!document.querySelector(`input[name="mq${i}"]:checked`))unanswered.push(qIdx+1);
+        qIdx++;
+    });
+    if(data.essay)data.essay.forEach((_,i)=>{
+        if(!$('es'+i)?.value.trim())unanswered.push(qIdx+1);
+        qIdx++;
+    });
+    if(unanswered.length>0){
+        if(!confirm(t('checkUnanswered')+'\n'+unanswered.join(', ')+'\n\n'+t('sureSubmit')))return;
+    }else if(!confirm(t('sureSubmit')))return;
+
+    clearInterval(timerInterval);
+    clearInterval(autoSaveInterval);
+    localStorage.removeItem('autosave_'+U.u+'_'+n);
+    type==='hw'?doSubmitHW():doSubmitEx();
+};
+    const doSubmitHW=()=>{
+    if(!currentWorkName)return;
+    const h=DB.hw_list.find(hw=>hw.n===currentWorkName);
+    if(!h)return;
+    let ans={mcq:[],essay:[]};
+    if(h.mcq)h.mcq.forEach((_,i)=>{
+        ans.mcq.push((document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'');
+    });
+    if(h.essay)h.essay.forEach((_,i)=>{
+        ans.essay.push($('es'+i)?.value||'');
+    });
+    const d=Math.floor((new Date()-stm)/1000);
+    if(!DB.submissions)DB.submissions=[];
+    DB.submissions.push({
+        u:U.u, type:'hw', n:h.n, con:JSON.stringify(ans),
+        date:new Date().toLocaleString(), dur:Math.floor(d/60)+'p'+d%60+'s'
+    });
+    save('/submissions',DB.submissions);
+    currentWorkType=null; currentWorkName=null; // reset
+    navSt('homework');
+};
+
+const doSubmitEx=()=>{
+    if(!currentWorkName)return;
+    const x=DB.exams.find(e=>e.n===currentWorkName);
+    if(!x)return;
+    let ans={mcq:[],essay:[]}, mcqScore=0;
+    if(x.mcq)x.mcq.forEach((m,i)=>{
+        const v=(document.querySelector(`input[name="mq${i}"]:checked`)||{}).value||'';
+        ans.mcq.push(v);
+        if(v===m.ans)mcqScore+=m.pt;
+    });
+    if(x.essay)x.essay.forEach((_,i)=>{
+        ans.essay.push($('es'+i)?.value||'');
+    });
+    const d=Math.floor((new Date()-stm)/1000);
+    if(!DB.submissions)DB.submissions=[];
+    DB.submissions.push({
+        u:U.u, type:'exam', n:x.n, con:JSON.stringify(ans),
+        date:new Date().toLocaleString(), dur:Math.floor(d/60)+'p'+d%60+'s',
+        mcqScore, essayScore:0, scored:false
+    });
+    save('/submissions',DB.submissions);
+    currentWorkType=null; currentWorkName=null;
+    navSt('exam');
+};
 const vwMySub=n=>{const ms=(DB.submissions||[]).filter(s=>s.u===U.u&&s.n===n&&s.type==='hw');$('hv-main').innerHTML=`<h4>📋 ${n} (${ms.length})</h4>${ms.map(s=>{let ans='';try{const a=JSON.parse(s.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=s.con;}return`<div class="card fade-in"><small>${s.date}</small><pre style="white-space:pre-wrap">${ans}</pre></div>`;}).join('')}<button class="btn btn-outline" onclick="navSt('homework')">←</button>`;};
 const vwExRes=n=>{const sub=(DB.submissions||[]).find(s=>s.u===U.u&&s.n===n&&s.type==='exam');if(!sub)return;let ans='';try{const a=JSON.parse(sub.con);if(a.mcq)ans+='TN: '+a.mcq.map((v,i)=>`C${i+1}:${v||'-'}`).join(', ')+'\n';if(a.essay)ans+='TL: '+a.essay.map((v,i)=>`C${i+1}: ${v||'-'}`).join('\n');}catch(e){ans=sub.con;}$('hv-main').innerHTML=`<h4>📄 ${n}</h4><div class="card fade-in"><pre style="white-space:pre-wrap">${ans}</pre><small>${sub.date} | TN:${sub.mcqScore||'?'}đ | TL:${sub.essayScore||'?'}đ</small></div><button class="btn btn-outline" onclick="navSt('exam')">←</button>`;};
 
