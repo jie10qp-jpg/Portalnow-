@@ -12,74 +12,123 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
-    <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        :root {
-            --font: 'Inter', sans-serif;
-            --primary: #1e293b; --accent: #3b82f6; --accent-hover: #2563eb;
-            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
-            --bg: #f8fafc; --surface: #ffffff; --surface-alt: #f1f5f9;
-            --text: #0f172a; --text-secondary: #475569; --border: #e2e8f0;
-            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05); --shadow: 0 4px 12px rgba(0,0,0,0.06);
-            --shadow-lg: 0 20px 40px rgba(0,0,0,0.12); --radius: 20px; --radius-sm: 14px;
-            --transition: 0.25s cubic-bezier(0.2, 0.0, 0, 1.0); --bottom-nav-height: 70px;
-        }
-        .dark {
-            --primary: #0f172a; --bg: #0b1120; --surface: #1e293b; --surface-alt: #334155;
-            --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
-        }
-        body {
-            font-family: var(--font); background: var(--bg); color: var(--text);
-            line-height: 1.5; min-height: 100vh; overflow-x: hidden; max-width: 100vw;
-            overscroll-behavior: none; touch-action: pan-x pan-y;
-        }
-        .hidden { display: none !important; }
-        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 9999; }
-        .toast { background: var(--surface); border: 1px solid var(--border); padding: 14px 20px; border-radius: 40px; box-shadow: var(--shadow-lg); font-weight: 500; font-size: 15px; color: var(--text); margin-bottom: 8px; }
-        .toast.success { border-left: 4px solid var(--success); }
-        .toast.error { border-left: 4px solid var(--danger); }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .modal-box { background: var(--surface); border-radius: var(--radius); padding: 30px; max-width: 420px; width: 90%; box-shadow: var(--shadow-lg); text-align: center; }
-        .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin: 20px 0; }
-        .bento-card { background: var(--surface); border-radius: var(--radius); padding: 24px 18px; box-shadow: var(--shadow); text-align: center; font-weight: 600; cursor: pointer; border: 1px solid var(--border); }
-        .bento-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
-        .bento-card.selected { background: #d1fae5; border-color: var(--success); }
-        button { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; font-family: var(--font); cursor: pointer; }
-        button:hover { background: var(--accent-hover); }
-        button.danger { background: var(--danger); }
-        button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
-        input, textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 40px; font-family: var(--font); font-size: 15px; background: var(--surface); color: var(--text); margin: 6px 0; }
-        .header { background: var(--surface); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); }
-        .container { max-width: 1100px; width: 100%; margin: 0 auto; padding: 24px 20px; box-sizing: border-box; }
-        .card { background: var(--surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); width: 100%; word-wrap: break-word; box-sizing: border-box; max-width: 100%; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height); background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 8px 16px; }
-        .nav-item.active { color: var(--accent); font-weight: 600; }
-        .profile-avatar { width: 90px; height: 90px; border-radius: 50%; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 12px; border: 3px solid var(--accent); cursor: pointer; }
-        .profile-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; margin-bottom: 10px; cursor: pointer; }
-        .logout-btn { background: var(--danger); color: white; text-align: center; padding: 16px; border-radius: 40px; font-weight: 700; margin-top: 20px; cursor: pointer; }
-        .question-block { background: var(--surface-alt); border-radius: var(--radius-sm); padding: 15px; margin-bottom: 15px; position: relative; }
-        .question-block .remove-question { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; cursor: pointer; }
-        .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
-        .avatar-option { font-size: 30px; padding: 10px; text-align: center; border-radius: 12px; cursor: pointer; border: 2px solid transparent; }
-        .avatar-option.selected { border-color: var(--accent); background: var(--surface-alt); }
-        .cheat-warning { background: var(--danger); color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: 600; margin-bottom: 10px; }
-        .timer { font-size: 2rem; font-weight: 700; text-align: center; padding: 10px; background: var(--surface-alt); border-radius: 40px; margin: 10px 0; }
-        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid var(--surface-alt); border-top: 5px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .badge { background: var(--danger); color: white; border-radius: 20px; padding: 2px 8px; font-size: 12px; margin-left: 6px; }
-        .schedule-slot { display: flex; justify-content: space-between; align-items: center; background: var(--surface-alt); border-radius: var(--radius-sm); padding: 12px; margin: 8px 0; }
-        .schedule-slot .slot-info { font-size: 14px; }
-        .schedule-slot button { font-size: 13px; padding: 6px 12px; }
-        .notif-editor-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; align-items: center; }
-        .notif-editor-toolbar button, .notif-editor-toolbar select, .notif-editor-toolbar input { width: auto; padding: 6px 10px; font-size: 14px; }
-        .notif-editor { min-height: 120px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--surface); }
-        @media (max-width: 640px) {
-            .bento-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-    </style>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+        --font: 'Inter', sans-serif;
+        --primary: #1e293b; --accent: #3b82f6; --accent-hover: #2563eb;
+        --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+        --bg: #f8fafc; --surface: #ffffff; --surface-alt: #f1f5f9;
+        --text: #0f172a; --text-secondary: #475569; --border: #e2e8f0;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05); --shadow: 0 4px 12px rgba(0,0,0,0.06);
+        --shadow-lg: 0 20px 40px rgba(0,0,0,0.12); --radius: 20px; --radius-sm: 14px;
+        --transition: 0.25s cubic-bezier(0.2, 0.0, 0, 1.0); --bottom-nav-height: 70px;
+    }
+    .dark {
+        --primary: #0f172a; --bg: #0b1120; --surface: #1e293b; --surface-alt: #334155;
+        --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
+    }
+    body {
+        font-family: var(--font); background: var(--bg); color: var(--text);
+        line-height: 1.5; min-height: 100vh; overflow-x: hidden; max-width: 100vw;
+        overscroll-behavior: none; touch-action: manipulation;
+        -webkit-overflow-scrolling: touch;
+    }
+    .hidden { display: none !important; }
+    .toast-container { position: fixed; top: 24px; right: 24px; z-index: 99999; }
+    .toast { background: var(--surface); border: 1px solid var(--border); padding: 14px 20px; border-radius: 40px; box-shadow: var(--shadow-lg); font-weight: 500; font-size: 15px; color: var(--text); margin-bottom: 8px; }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 99998; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: var(--surface); border-radius: var(--radius); padding: 30px; max-width: 420px; width: 90%; box-shadow: var(--shadow-lg); text-align: center; }
+    .bento-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin: 20px 0; }
+    .bento-card { background: var(--surface); border-radius: var(--radius); padding: 24px 18px; box-shadow: var(--shadow); text-align: center; font-weight: 600; cursor: pointer; border: 1px solid var(--border); }
+    .bento-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+    .bento-card.selected { background: #d1fae5; border-color: var(--success); }
+    button { 
+        background: var(--accent); color: white; border: none; padding: 12px 24px; 
+        border-radius: 40px; font-weight: 600; font-family: var(--font); 
+        cursor: pointer; -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation; position: relative; z-index: 10;
+        -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        outline: none; -webkit-user-select: none; user-select: none;
+        min-height: 44px; min-width: 44px;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.danger { background: var(--danger); z-index: 10; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    button:active { opacity: 0.7; transform: scale(0.97); }
+    input, textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 40px; font-family: var(--font); font-size: 15px; background: var(--surface); color: var(--text); margin: 6px 0; -webkit-appearance: none; }
+    .header { background: var(--surface); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); }
+    .container { max-width: 1100px; width: 100%; margin: 0 auto; padding: 24px 20px; box-sizing: border-box; }
+    .card { background: var(--surface); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); width: 100%; word-wrap: break-word; box-sizing: border-box; max-width: 100%; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav-height); background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 8px 16px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .nav-item.active { color: var(--accent); font-weight: 600; }
+    .profile-avatar { width: 90px; height: 90px; border-radius: 50%; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 12px; border: 3px solid var(--accent); cursor: pointer; }
+    .profile-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; margin-bottom: 10px; cursor: pointer; }
+    .logout-btn { background: var(--danger); color: white; text-align: center; padding: 16px; border-radius: 40px; font-weight: 700; margin-top: 20px; cursor: pointer; }
+    .question-block { background: var(--surface-alt); border-radius: var(--radius-sm); padding: 15px; margin-bottom: 15px; position: relative; }
+    .question-block .remove-question { position: absolute; top: 8px; right: 8px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 16px; cursor: pointer; z-index: 10; }
+    .mcq-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
+    .avatar-option { font-size: 30px; padding: 10px; text-align: center; border-radius: 12px; cursor: pointer; border: 2px solid transparent; }
+    .avatar-option.selected { border-color: var(--accent); background: var(--surface-alt); }
+    .cheat-warning { background: var(--danger); color: white; padding: 10px; border-radius: 10px; text-align: center; font-weight: 600; margin-bottom: 10px; }
+    .timer { font-size: 2rem; font-weight: 700; text-align: center; padding: 10px; background: var(--surface-alt); border-radius: 40px; margin: 10px 0; }
+    .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 99999; display: flex; align-items: center; justify-content: center; }
+    .spinner { width: 50px; height: 50px; border: 5px solid var(--surface-alt); border-top: 5px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .badge { background: var(--danger); color: white; border-radius: 20px; padding: 2px 8px; font-size: 12px; margin-left: 6px; }
+    .schedule-slot { display: flex; justify-content: space-between; align-items: center; background: var(--surface-alt); border-radius: var(--radius-sm); padding: 12px; margin: 8px 0; }
+    .schedule-slot .slot-info { font-size: 14px; }
+    .schedule-slot button { font-size: 13px; padding: 6px 12px; z-index: 10; }
+    .notif-editor-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; align-items: center; }
+    .notif-editor-toolbar button, .notif-editor-toolbar select, .notif-editor-toolbar input { width: auto; padding: 6px 10px; font-size: 14px; }
+    .notif-editor { min-height: 120px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; background: var(--surface); }
+    @media (max-width: 640px) {
+        .bento-grid { grid-template-columns: repeat(2, 1fr); }
+        button { padding: 14px 20px; font-size: 15px; min-height: 48px; }
+    }
+    
+    /* FIX TOUCH EVENTS */
+button, .bento-card, .nav-item, .profile-menu-item {
+    cursor: pointer;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 10;
+}
+button:active, .bento-card:active, .nav-item:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+}
+.card button, .card .danger, .card .ghost {
+    pointer-events: auto !important;
+    z-index: 50 !important;
+    position: relative !important;
+    overflow: visible !important;
+    min-height: 48px;
+}
+.bottom-nav {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+.nav-item {
+    z-index: 10000 !important;
+    min-width: 60px;
+    min-height: 50px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important;
+}
+#hv-main {
+    padding-bottom: 90px; /* đảm bảo không bị bottom-nav che */
+}
+</style>
 </head>
 <body class="light">
 <div id="toast-container" class="toast-container"></div>
@@ -121,13 +170,14 @@
 <div id="pg-hv" class="hidden">
     <div class="header"><b id="hv-info"></b></div>
     <div class="container student-content" id="hv-main"></div>
-    <div class="bottom-nav">
-        <div class="nav-item active" id="nav-home" onclick="sv('home')"><span>🏠</span><span>Trang chủ</span></div>
-        <div class="nav-item" id="nav-reg" onclick="sv('reg')"><span>📅</span><span>Lịch học</span></div>
-        <div class="nav-item" id="nav-2c" onclick="sv('2c')"><span>📝</span><span>Bài tập</span></div>
-        <div class="nav-item" id="nav-2f" onclick="sv('2f')"><span>📋</span><span>Thi cử</span></div>
-        <div class="nav-item" id="nav-profile" onclick="sv('profile')"><span>👤</span><span>Tôi</span></div>
-    </div>
+<div class="bottom-nav">
+    <div class="nav-item active" id="nav-home" onclick="sv('home')"><span>🏠</span><span>Trang chủ</span></div>
+    <div class="nav-item" id="nav-reg" onclick="sv('reg')"><span>📅</span><span>Lịch học</span></div>
+    <div class="nav-item" id="nav-2c" onclick="sv('2c')"><span>📝</span><span>Bài tập</span></div>
+    <div class="nav-item" id="nav-2f" onclick="sv('2f')"><span>📋</span><span>Thi cử</span></div>
+    <div class="nav-item" id="nav-flashcards" onclick="sv('flashcards')"><span>🀄</span><span>Flashcard</span></div>
+    <div class="nav-item" id="nav-profile" onclick="sv('profile')"><span>👤</span><span>Tôi</span></div>
+</div>
 </div>
 
 <!-- PARENT -->
@@ -157,20 +207,67 @@
 </div>
 
 <script>
+// ========== SERVER TIME ==========
+async function getServerTime() {
+    try {
+        const snap = await fbDB.ref('.info/serverTimeOffset').once('value');
+        const offset = snap.val() || 0;
+        return new Date(Date.now() + offset);
+    } catch (e) {
+        console.warn('Không lấy được server time, dùng giờ máy');
+        return new Date();
+    }
+}
+
 // ========== FIREBASE CONFIG ==========
 const firebaseConfig = {
-    apiKey: "AIzaSyBGiB7JJq9KZsOIUqGtXmGm2pM8pGmTq0k",
+    apiKey: "AIzaSyCcMieJE1oiohUh79DHVqZFkjTwSAF4Fws",
     authDomain: "portalnowpn.firebaseapp.com",
     databaseURL: "https://portalnowpn-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "portalnowpn",
-    storageBucket: "portalnowpn.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcdef1234567890"
+    storageBucket: "portalnowpn.firebasestorage.app",
+    messagingSenderId: "343490919452",
+    appId: "1:343490919452:web:1bb511a68070c06dd3b3d9"
 };
 firebase.initializeApp(firebaseConfig);
 const fbDB = firebase.database();
 const fbAuth = firebase.auth();
 const fbStorage = firebase.storage();
+
+// ========== FLASHCARD DATA ==========
+const HSK_VOCAB = [];
+let currentFlashcardIndex = 0;
+let isFlipped = false;
+
+// ========== FCM PUSH NOTIFICATIONS ==========
+let messaging = null;
+if (firebase.messaging && firebase.messaging.isSupported()) {
+    try {
+        messaging = firebase.messaging();
+        messaging.usePublicVapidKey('BOGXq9J2Vxnh-3qN7Y6YlBrmWsd2XPFVLZPW5VPMhMRnAJyAf4AMHXNfGPfKnGSVZgSMhbY5MK4N5PTHJH8kS4o');
+        
+        messaging.onMessage((payload) => {
+            const notificationTitle = payload.notification.title;
+            const notificationOptions = { body: payload.notification.body, icon: '/icon.png' };
+            if (Notification.permission === 'granted') {
+                new Notification(notificationTitle, notificationOptions);
+            }
+            playNotificationSound();
+        });
+    } catch (e) { console.log('FCM not supported'); }
+}
+
+async function requestFcmTokenForUser(uid) {
+    if (!messaging || !uid) return;
+    try {
+        const currentToken = await messaging.getToken({ vapidKey: 'BOGXq9J2Vxnh-3qN7Y6YlBrmWsd2XPFVLZPW5VPMhMRnAJyAf4AMHXNfGPfKnGSVZgSMhbY5MK4N5PTHJH8kS4o' });
+        if (currentToken) {
+            if (!db.fcm_tokens) db.fcm_tokens = {};
+            db.fcm_tokens[uid] = { token: currentToken, updatedAt: new Date().toISOString() };
+            await saveDB('fcm_tokens', db.fcm_tokens);
+        }
+    } catch (err) { console.log('FCM token error:', err); }
+}
 
 // ========== GLOBAL STATE ==========
 let db = {};
@@ -198,36 +295,69 @@ function toast(msg, type = 'success') {
 
 function modal(msg, onConfirm, onCancel) {
     const container = document.getElementById('modal-container');
-    container.innerHTML = `
-      <div class="modal-overlay">
-        <div class="modal-box">
-          <p>${msg}</p>
-          <button id="modal-confirm" class="danger">Xác nhận</button>
-          <button id="modal-cancel" class="ghost">Hủy</button>
-        </div>
-      </div>`;
-    document.getElementById('modal-confirm').onclick = () => { container.innerHTML = ''; if (onConfirm) onConfirm(); };
-    document.getElementById('modal-cancel').onclick = () => { container.innerHTML = ''; if (onCancel) onCancel(); };
+    container.innerHTML = '';
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+    
+    const p = document.createElement('p');
+    p.innerHTML = msg;
+    
+    const btnConfirm = document.createElement('button');
+    btnConfirm.id = 'modal-confirm';
+    btnConfirm.className = 'danger';
+    btnConfirm.textContent = 'Xác nhận';
+    btnConfirm.style.marginRight = '10px';
+    btnConfirm.onclick = () => {
+        container.innerHTML = '';
+        if (onConfirm) onConfirm();
+    };
+    
+    const btnCancel = document.createElement('button');
+    btnCancel.id = 'modal-cancel';
+    btnCancel.className = 'ghost';
+    btnCancel.textContent = 'Hủy';
+    btnCancel.onclick = () => {
+        container.innerHTML = '';
+        if (onCancel) onCancel();
+    };
+    
+    box.appendChild(p);
+    box.appendChild(btnConfirm);
+    box.appendChild(btnCancel);
+    overlay.appendChild(box);
+    container.appendChild(overlay);
 }
 
 function showLoading() { document.getElementById('loadingSpinner').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingSpinner').classList.add('hidden'); }
 
-// ========== DATABASE HELPERS ==========
+// ========== DATABASE HELPERS (OPTIMIZED) ==========
 async function loadDB() {
     showLoading();
     try {
-        const snapshot = await fbDB.ref('/').once('value');
-        db = snapshot.val() || {};
-    } catch (e) { db = {}; toast('Không thể tải dữ liệu', 'error'); }
-    if (db.notif_history) db.notif_history.forEach(n => { if (!n.id) n.id = 'legacy-' + Date.now() + Math.random(); });
-    if (db.private_notif) {
-        Object.values(db.private_notif).forEach(arr => {
-            if (Array.isArray(arr)) arr.forEach(n => { if (!n.id) n.id = 'legacy-' + Date.now() + Math.random(); });
-        });
-    }
-    hideLoading();
+        const [usersSnap, configSnap, skedSnap] = await Promise.all([
+            fbDB.ref('users').once('value'),
+            fbDB.ref('config').once('value'),
+            fbDB.ref('sked').once('value')
+        ]);
+        db.users = usersSnap.val() || {};
+        db.config = configSnap.val() || { adminPinHash: CryptoJS.SHA256("1234").toString(), subAdminPinHash: CryptoJS.SHA256("5678").toString() };
+        let skedData = skedSnap.val() || {};
+db.sked = {
+    t: skedData.t || "Tuần mới",
+    slots: Array.isArray(skedData.slots) ? skedData.slots : Object.values(skedData.slots || {}),
+    isOpen: skedData.isOpen !== undefined ? skedData.isOpen : true,
+    regOpen: skedData.regOpen || '',
+    regClose: skedData.regClose || ''
+};
+    } catch (e) { toast('Không thể tải dữ liệu cốt lõi', 'error'); }
     initDB();
+
+    hideLoading();
     updateStats();
 }
 
@@ -237,10 +367,10 @@ function initDB() {
         sked: { t: "Tuần mới", slots: [], isOpen: true, regOpen: '', regClose: '' },
         exams: [], hw_list: [], submissions: [],
         data: {}, notif_history: [], private_notif: {}, forgot_pwd: [],
-        bank_info: {}, sked_history: [],
+        bank_info: {}, sked_history: [], vouchers: [], voucher_history: [], custom_flashcards: [],
         question_bank: { subjects: {} }, audit_log: [],
         config: { adminPinHash: CryptoJS.SHA256("1234").toString(), subAdminPinHash: CryptoJS.SHA256("5678").toString() },
-        question_stats: {}
+        question_stats: {}, fcm_tokens: {}
     };
     Object.keys(schema).forEach(k => { if (!db[k]) db[k] = schema[k]; });
     if (!db.users || Object.keys(db.users).length === 0) {
@@ -248,11 +378,6 @@ function initDB() {
         db.users = {};
         db.users[adminUid] = { n: 'Admin chính', u: 'ADMIN.pn', p: CryptoJS.SHA256('portalnow1').toString(), r: 'admin', email: 'admin@portal.now', avatar: '👤', phone: '' };
     }
-    if (!db.parents) db.parents = {};
-    if (!db.question_bank) db.question_bank = { subjects: {} };
-    if (!db.audit_log) db.audit_log = [];
-    if (!db.config) db.config = { adminPinHash: CryptoJS.SHA256("1234").toString(), subAdminPinHash: CryptoJS.SHA256("5678").toString() };
-    if (!db.question_stats) db.question_stats = {};
 }
 
 async function saveDB(path = null, data = null) {
@@ -263,6 +388,59 @@ async function saveDB(path = null, data = null) {
     } catch (e) { console.error('Firebase save error:', e); toast('Lỗi đồng bộ dữ liệu!', 'error'); }
 }
 
+async function loadNotifications() {
+    try {
+        const [notifSnap, privateSnap] = await Promise.all([
+            fbDB.ref('notif_history').once('value'),
+            user ? fbDB.ref(`private_notif/${user.uid}`).once('value') : Promise.resolve({ val: () => [] })
+        ]);
+        db.notif_history = notifSnap.val() || [];
+        if (user) {
+            if (!db.private_notif) db.private_notif = {};
+            db.private_notif[user.uid] = privateSnap.val() || [];
+        }
+        db.notif_history.forEach(n => { if (!n.id) n.id = 'legacy-' + Date.now() + Math.random(); });
+        if (db.private_notif[user?.uid]) {
+            db.private_notif[user.uid].forEach(n => { if (!n.id) n.id = 'legacy-' + Date.now() + Math.random(); });
+        }
+    } catch (e) { console.warn('Không tải được thông báo'); }
+}
+
+async function loadHomeworkAndExams() {
+    try {
+        const [hwSnap, examSnap, subSnap] = await Promise.all([
+            fbDB.ref('hw_list').once('value'),
+            fbDB.ref('exams').once('value'),
+            fbDB.ref('submissions').once('value')
+        ]);
+        db.hw_list = hwSnap.val() || [];
+        db.exams = examSnap.val() || [];
+        db.submissions = subSnap.val() || [];
+    } catch (e) { console.warn('Không tải được bài tập/thi'); }
+}
+
+async function loadParents() {
+    try {
+        const snap = await fbDB.ref('parents').once('value');
+        db.parents = snap.val() || {};
+    } catch (e) { console.warn('Không tải được phụ huynh'); }
+}
+
+async function loadStudentData(uid) {
+    try {
+        const [dataSnap, bankSnap] = await Promise.all([
+            fbDB.ref(`data/${uid}`).once('value'),
+            fbDB.ref('bank_info').once('value')
+        ]);
+        if (!db.data) db.data = {};
+        db.data[uid] = dataSnap.val() || {};
+        if (!db.data[uid].fee) db.data[uid].fee = { slots: 0, rate: 0, paid: 0, logs: [], receipts: [] };
+        if (!db.data[uid].pts_tl) db.data[uid].pts_tl = [];
+        if (!db.data[uid].pts_kt) db.data[uid].pts_kt = [];
+        db.bank_info = bankSnap.val() || {};
+    } catch (e) { console.warn('Không tải được dữ liệu học viên'); }
+}
+
 // ========== AUDIT LOG ==========
 function addAudit(action, target = null, details = '') {
     if (!db.audit_log) db.audit_log = [];
@@ -271,6 +449,10 @@ function addAudit(action, target = null, details = '') {
 }
 
 // ========== ROLE HELPERS ==========
+function getStudentName(uid) {
+    const u = db.users?.[uid];
+    return u ? u.n : uid;
+}
 const isTeacher = () => user && (user.r === 'admin' || user.r === 'teacher' || user.r === 'subadmin');
 const isMainAdmin = () => user && user.r === 'admin';
 const isSubAdmin = () => user && user.r === 'subadmin';
@@ -307,7 +489,7 @@ function updateStats() {
 }
 
 function setActiveNav(id) {
-    ['home','reg','2c','2f','profile'].forEach(k => {
+    ['home','reg','2c','2f','flashcards','writing','profile'].forEach(k => {
         const el = document.getElementById('nav-'+k);
         if (el) el.classList.toggle('active', k === id);
     });
@@ -320,15 +502,37 @@ async function doLogin() {
     if (!username || !password) { toast('Nhập đầy đủ thông tin', 'error'); return; }
     showLoading();
     await loadDB();
+    
     const hashed = CryptoJS.SHA256(password).toString();
     let foundUser = Object.values(db.users || {}).find(u => u.u === username && u.p === hashed);
+    
     if (foundUser) {
+        const email = username + '@portal.now';
+        try {
+            await fbAuth.signInWithEmailAndPassword(email, password).catch(async (err) => {
+                if (err.code === 'auth/user-not-found') {
+                    await fbAuth.createUserWithEmailAndPassword(email, password);
+                } else throw err;
+            });
+        } catch (e) {
+            console.warn('Firebase Auth fallback:', e.message);
+        }
         user = { uid: Object.keys(db.users).find(k => db.users[k] === foundUser), ...foundUser };
         afterLogin();
         return;
     }
-    const parentEntry = Object.entries(db.parents || {}).find(([id, p]) => p.phone === username && p.childUsername === password);
+    
+    // Đăng nhập phụ huynh với mật khẩu riêng (đã hash)
+    const parentEntry = Object.entries(db.parents || {}).find(([id, p]) => p.phone === username && p.p === hashed);
     if (parentEntry) {
+        const emailP = username + '@parent.portal.now';
+        try {
+            await fbAuth.signInWithEmailAndPassword(emailP, password).catch(async (err) => {
+                if (err.code === 'auth/user-not-found') {
+                    await fbAuth.createUserWithEmailAndPassword(emailP, password);
+                } else throw err;
+            });
+        } catch (e) { console.warn('Parent auth fallback:', e.message); }
         const child = Object.values(db.users || {}).find(u => u.u === parentEntry[1].childUsername);
         user = { uid: parentEntry[0], r: 'parent', ...parentEntry[1], child: child || null };
         afterLogin();
@@ -338,8 +542,12 @@ async function doLogin() {
     hideLoading();
 }
 
-function afterLogin() {
+async function afterLogin() {
     hideLoading();
+    await Promise.all([loadNotifications(), loadHomeworkAndExams(), loadParents()]);
+    if (user.r === 'hv') {
+        await loadStudentData(user.uid);
+    }
     if (isTeacher()) {
         show('pg-admin');
         renderAdminMenu();
@@ -357,6 +565,10 @@ function afterLogin() {
         show('pg-parent');
         parentDashboard('home');
         toast(`Xin chào, ${user.name || 'Phụ huynh'}!`);
+    }
+    // Đăng ký FCM token sau khi đã có user
+    if (user && user.uid) {
+        requestFcmTokenForUser(user.uid);
     }
 }
 
@@ -384,44 +596,73 @@ function attachStudentRealtime(uid) {
 function renderAdminMenu() {
     const menuDiv = document.getElementById('admin-menu');
     if (!menuDiv) return;
+    
+    const canAccess = (perm) => {
+        if (isMainAdmin()) return true;
+        if (isSubAdmin()) return user.permissions && user.permissions.includes(perm);
+        return true; // teacher thường được vào tất cả (trừ admin, cleanup)
+    };
+    
     let html = '';
-    html += `<div class="bento-card" onclick="op('2a')">📅 Xếp lịch học</div>`;
-    html += `<div class="bento-card" onclick="op('2b')">📢 Thông báo</div>`;
-    html += `<div class="bento-card" onclick="op('2c')">📝 Bài tập</div>`;
-    html += `<div class="bento-card" onclick="op('2e')">👥 Học viên</div>`;
-    html += `<div class="bento-card" onclick="op('2f')">📋 Kiểm tra/Thi</div>`;
-    html += `<div class="bento-card" onclick="op('res')">📊 Kết quả</div>`;
-    if (isMainAdmin() || (isSubAdmin() && user.permissions?.includes('finance'))) {
-        html += `<div class="bento-card" onclick="op('2g')">💰 Học phí</div>`;
-    }
+    const addItem = (perm, label) => {
+        if (canAccess(perm)) {
+            html += `<div class="bento-card" onclick="op('${perm}')">${label}</div>`;
+        }
+    };
+    
+    addItem('2a', '📅 Xếp lịch học');
+    addItem('2b', '📢 Thông báo');
+    addItem('2c', '📝 Bài tập');
+    addItem('2e', '👥 Học viên');
+    addItem('2f', '📋 Kiểm tra/Thi');
+    addItem('res', '📊 Kết quả');
+    addItem('voucher', '🎟 Voucher');
+    addItem('flashcards_admin', '🀄 Quản lý Flashcard');
+    addItem('2g', '💰 Học phí');
+    
     if (isMainAdmin()) {
         html += `<div class="bento-card" onclick="op('admins')">👑 Quản trị viên</div>`;
         html += `<div class="bento-card" onclick="op('support')">🛠️ Hỗ trợ</div>`;
         html += `<div class="bento-card" onclick="op('audit')">📋 Lịch sử hoạt động</div>`;
         html += `<div class="bento-card" onclick="op('cleanup')">🧹 Dọn dẹp dữ liệu</div>`;
     }
-    if (isTeacher()) {
-        html += `<div class="bento-card" onclick="op('teachers')">🍎 Giáo viên</div>`;
-        html += `<div class="bento-card" onclick="op('parents')">👪 Phụ huynh</div>`;
-    }
+    
+    addItem('teachers', '🍎 Giáo viên');
+    addItem('parents', '👪 Phụ huynh');
+    
     html += `<div class="card" style="margin-bottom:16px;">👋 Chào mừng ${user.n}!</div>`;
     menuDiv.innerHTML = html;
 }
 
 // ========== ADMIN ROUTER ==========
-function op(id) {
+async function op(id) {
     if (!user || !isTeacher()) { locOut(); return; }
     if (isSubAdmin() && user.permissions && !user.permissions.includes(id)) { toast('Bạn không có quyền', 'error'); return; }
+    try {
+        await loadHomeworkAndExams();
+        await loadParents();
+    } catch (e) {
+        console.warn('Lỗi tải dữ liệu phụ:', e);
+    }
     show('pg-det');
     const c = document.getElementById('det-content');
     const renderers = {
         '2a': render2a, '2b': render2b, '2c': render2c, '2e': render2e,
         '2f': render2f, '2g': render2g, 'res': renderRes, 'admins': renderAdmins,
         'support': renderSupport, 'teachers': renderTeachers, 'parents': renderParents,
-        'audit': renderAudit, 'config': renderConfig, 'cleanup': renderCleanup
+        'audit': renderAudit, 'config': renderConfig, 'cleanup': renderCleanup, 'voucher': renderVoucher,
+        'flashcards_admin': renderFlashcardsAdmin
     };
-    if (renderers[id]) renderers[id](c);
-    else c.innerHTML = '<p>Tính năng đang phát triển</p>';
+    if (renderers[id]) {
+        try {
+            renderers[id](c);
+        } catch (e) {
+            console.error('Lỗi render ' + id + ':', e);
+            c.innerHTML = '<p>Lỗi hiển thị, thử lại sau.</p>';
+        }
+    } else {
+        c.innerHTML = '<p>Tính năng đang phát triển</p>';
+    }
 }
 
 function playNotificationSound() {
@@ -447,6 +688,7 @@ function render2a(c) {
       <div class="card">
         <label>Tên tuần: <input id="weekName" value="${db.sked.t || ''}"></label>
         <button onclick="saveWeekName()">💾 Lưu tên tuần</button>
+        <button onclick="createNewWeek()" style="margin-left:8px; background:var(--warning);">🆕 Tạo tuần mới</button>
         <hr>
         <label>Giờ mở đăng ký: <input type="datetime-local" id="regOpen" value="${db.sked.regOpen || ''}"></label>
         <label>Giờ đóng đăng ký: <input type="datetime-local" id="regClose" value="${db.sked.regClose || ''}"></label>
@@ -458,14 +700,14 @@ function render2a(c) {
           <div class="bento-card" style="min-height:140px;align-items:flex-start;padding:12px">
             <b style="align-self:center">${day}</b>
             <div style="font-size:12px; margin-top:8px; text-align:left;width:100%">
-              ${(db.sked.slots || []).filter(s => s.d === day).map((s, i) => `
+              ${(db.sked.slots || []).filter(s => s.d === day).map((s) => `
                 <div class="schedule-slot">
                   <div class="slot-info">
                     <span style="font-weight:600">${s.ati} - ${s.n}</span>
                     <span style="font-size:11px"> (${(s.r||[]).length}/${s.c})</span>
-                    <div style="font-size:10px;color:var(--text-secondary)">HV: ${(s.r||[]).join(', ') || 'Chưa có'}</div>
+                    <div style="font-size:10px;color:var(--text-secondary)">HV: ${(s.r||[]).map(uid => getStudentName(uid)).join(', ') || 'Chưa có'}</div>
                   </div>
-                  <button class="danger" style="padding:2px 6px;font-size:10px" onclick="deleteSlot(${db.sked.slots.indexOf(s)})">Xóa slot</button>
+                  <button class="danger" style="padding:2px 6px;font-size:10px" onclick="deleteSlot('${s.id}')">Xóa slot</button>
                 </div>`).join('') || '<span style="color:var(--text-secondary);font-size:11px">Trống</span>'}
             </div>
           </div>`).join('')}
@@ -479,14 +721,45 @@ function render2a(c) {
         <button onclick="addS()">+ THÊM</button>
       </div>
       <hr>
-      <h4>📋 Lịch sử các tuần</h4>` +
-      (db.sked_history || []).map((h, i) => `<div class="card" style="display:flex;justify-content:space-between;align-items:center">
+      <h4>📋 Lịch sử các tuần</h4>
+      ${(db.sked_history || []).map((h, i) => `<div class="card" style="display:flex;justify-content:space-between;align-items:center">
         <span><b>${h.t}</b> - ${h.date} (${h.slots.length} tiết)</span>
         <div>
           <button onclick="loadWeek('${h.id}')" style="margin-right:5px">Tải</button>
           <button class="danger" onclick="deleteWeekHistory(${i})">Xóa</button>
         </div>
-      </div>`).join('');
+      </div>`).join('')}
+      <hr>
+      <h4>📢 Gửi thông báo nhanh</h4>
+      <div class="card">
+        <button onclick="quickNotifySchedule('online')">📢 TB Online: "Thời gian đăng ký lịch học online sắp tới"</button>
+        <button onclick="quickNotifySchedule('offline')" style="margin-top:8px;">📢 TB Offline: "Thời gian đăng ký lịch học offline sắp tới"</button>
+      </div>`;
+}
+
+async function createNewWeek() {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    modal('🆕 Tạo tuần mới?<br><small>Lịch hiện tại sẽ được lưu vào lịch sử. Tất cả slot và đăng ký sẽ bị xóa.</small>', async () => {
+        // Lưu tuần hiện tại vào lịch sử (giữ nguyên slots)
+        if (!db.sked_history) db.sked_history = [];
+        db.sked_history.unshift({
+            id: Date.now(),
+            t: db.sked.t || 'Tuần cũ',
+            date: new Date().toLocaleDateString(),
+            slots: JSON.parse(JSON.stringify(db.sked.slots || []))
+        });
+        // Reset sked về mặc định
+        db.sked = {
+            t: 'Tuần mới',
+            slots: [],
+            isOpen: true,
+            regOpen: '',
+            regClose: ''
+        };
+        await saveDB();
+        op('2a');
+        toast('Đã tạo tuần mới. Lịch cũ đã được lưu vào lịch sử.');
+    });
 }
 
 async function saveWeekName() { db.sked.t = document.getElementById('weekName').value; await saveDB(); op('2a'); }
@@ -497,18 +770,80 @@ async function saveRegTime() {
 }
 async function toggleScheduleOpen() { db.sked.isOpen = !db.sked.isOpen; await saveDB(); op('2a'); }
 async function addS() {
-    const n = document.getElementById('an').value, d = document.getElementById('ad').value,
-          ati = document.getElementById('ati').value, c = parseInt(document.getElementById('ac').value) || 10;
+    const n = document.getElementById('an').value.trim();
+    const d = document.getElementById('ad').value;
+    const ati = document.getElementById('ati').value.trim();
+    const c = parseInt(document.getElementById('ac').value) || 10;
     if (!n || !d || !ati) { toast('Vui lòng điền đầy đủ thông tin tiết học', 'error'); return; }
-    db.sked.slots.push({ n, d, ati, c, r: [] });
-    await saveDB(); op('2a'); toast('Đã thêm tiết');
+    if (c < 1) { toast('Sĩ số phải lớn hơn 0', 'error'); return; }
+    
+    // Đảm bảo slots là mảng trước khi push
+    if (!Array.isArray(db.sked.slots)) {
+        db.sked.slots = [];
+    }
+    
+    const newSlot = {
+        id: 'slot-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+        n, d, ati, c, r: []
+    };
+    db.sked.slots.push(newSlot);
+    await saveDB();
+    op('2a');
+    toast('✅ Đã thêm tiết học thành công!');
 }
-async function deleteSlot(i) { db.sked.slots.splice(i, 1); await saveDB(); op('2a'); }
+async function deleteSlot(slotId) {
+    if (!Array.isArray(db.sked.slots)) {
+        db.sked.slots = [];
+        return;
+    }
+    const index = db.sked.slots.findIndex(s => s.id === slotId);
+    if (index === -1) return;
+    db.sked.slots.splice(index, 1);
+    await saveDB();
+    op('2a');
+    toast('Đã xóa slot');
+}
+
 async function loadWeek(id) {
-    const h = (db.sked_history || []).find(x => x.id === id);
-    if (h) { db.sked.t = h.t; db.sked.slots = h.slots; await saveDB(); op('2a'); toast('Đã tải tuần'); }
+    const h = (db.sked_history || []).find(x => String(x.id) === String(id));
+    if (h) {
+        db.sked.t = h.t;
+        db.sked.slots = h.slots.map(s => ({
+            ...s,
+            id: s.id || ('slot-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)),
+            r: s.r || []
+        }));
+        await saveDB();
+        op('2a');
+        toast('Đã tải tuần');
+    } else {
+        toast('Không tìm thấy lịch sử tuần (ID: ' + id + ')', 'error');
+    }
 }
 async function deleteWeekHistory(i) { db.sked_history.splice(i, 1); await saveDB(); op('2a'); toast('Đã xóa lịch sử tuần'); }
+async function quickNotifySchedule(type) {
+    const msg = type === 'online' 
+        ? 'Thời gian đăng ký lịch học online sắp tới, vui lòng xem lịch học' 
+        : 'Thời gian đăng ký lịch học offline sắp tới, vui lòng xem lịch học';
+    
+    if (!db.notif_history) db.notif_history = [];
+    db.notif_history.unshift({
+        id: 'msg-' + Date.now(),
+        msg: msg,
+        msgHtml: msg,
+        date: new Date().toLocaleString(),
+        target: null
+    });
+    
+    Object.values(db.users||{}).filter(u => u.r==='hv').forEach(h => {
+        if (!db.data[h.uid]) db.data[h.uid] = {};
+        db.data[h.uid]['2b_new'] = true;
+    });
+    
+    await saveDB();
+    toast('Đã gửi thông báo!');
+    op('2a');
+}
 
 // ========== THÔNG BÁO (2b) ==========
 function render2b(c) {
@@ -666,6 +1001,11 @@ function addQuestionTo(type) {
     block.innerHTML = `
       <button class="remove-question" onclick="this.parentElement.remove()">✕</button>
       <input placeholder="Nội dung câu hỏi" class="q-text">
+      <div style="margin:8px 0;">
+        <label style="font-size:13px;">🎵 File âm thanh (.mp3):</label>
+        <input type="file" class="q-audio" accept="audio/*" style="font-size:13px;">
+        <span class="audio-filename" style="font-size:12px; color:var(--text-secondary);"></span>
+      </div>
       <div class="mcq-options">
         <input placeholder="A" class="opt-a"><input placeholder="B" class="opt-b">
         <input placeholder="C" class="opt-c"><input placeholder="D" class="opt-d">
@@ -735,12 +1075,22 @@ async function saveHomework() {
     const container = document.getElementById('hw-questions-container');
     const blocks = container.querySelectorAll('.question-block');
     const questions = [];
-    blocks.forEach(b => {
+    showLoading();
+    for (const b of blocks) {
         const qText = b.querySelector('.q-text')?.value || '';
         const point = parseInt(b.querySelector('.q-point')?.value) || 1;
+        const audioFile = b.querySelector('.q-audio')?.files[0];
+        let audioUrl = '';
+        if (audioFile) {
+            const storageRef = fbStorage.ref('audio_questions/' + Date.now() + '_' + audioFile.name);
+            try {
+                const uploadTask = await storageRef.put(audioFile);
+                audioUrl = await uploadTask.ref.getDownloadURL();
+            } catch (e) { toast('Lỗi tải file âm thanh', 'error'); hideLoading(); return; }
+        }
         if (b.querySelector('.mcq-options')) {
             questions.push({
-                type: 'mcq', q: qText,
+                type: 'mcq', q: qText, audioUrl,
                 a: b.querySelector('.opt-a')?.value || '',
                 b: b.querySelector('.opt-b')?.value || '',
                 c: b.querySelector('.opt-c')?.value || '',
@@ -749,21 +1099,26 @@ async function saveHomework() {
                 point
             });
         } else {
-            questions.push({ type: 'essay', q: qText, point });
+            questions.push({ type: 'essay', q: qText, audioUrl, point });
         }
-    });
+    }
     db.hw_list.push({
         n, start: document.getElementById('h_start').value, end: document.getElementById('h_end').value,
         time: document.getElementById('h_time').value, slot: document.getElementById('h_slot').value,
         questions, assignedTo: [], assigned: false
     });
+    hideLoading();
     await saveDB(); op('2c'); toast('Bài tập đã lưu');
 }
 
 async function deleteHomework(i) {
-    db.hw_list.splice(i, 1);
-    await saveDB();
-    op('2c');
+    const hw = db.hw_list[i];
+    modal(`⚠️ Xóa bài tập "${hw.n}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => {
+        db.hw_list.splice(i, 1);
+        await saveDB();
+        op('2c');
+        toast('Đã xóa bài tập');
+    });
 }
 
 function editHw(i) {
@@ -836,19 +1191,78 @@ function previewWork(type, idx) {
 
 // ----- 2e: Học viên -----
 function render2e(c) {
-    const students = Object.values(db.users||{}).filter(u => u.r === 'hv');
-    c.innerHTML = `<h3>👥 Học viên</h3>
+    const entries = Object.entries(db.users||{}).filter(([uid, u]) => u.r === 'hv');
+    const container = document.createElement('div');
+    container.innerHTML = `<h3>👥 Học viên</h3>
     <div class="card">
       <input id="en" placeholder="Tên"><input id="el" placeholder="Lớp">
       <input id="eu" placeholder="Tài khoản (sẽ thêm .pn.edu)"><input id="ep" placeholder="Mật khẩu" type="password">
       <input id="e_email" placeholder="Email"><input id="e_phone" placeholder="SĐT">
-      <button onclick="addHV()">TẠO</button>
-    </div>
-    ${students.map(h => `<div class="card"><b>${h.n}</b> [${h.l || '?'}] 📧${h.email||'?'} 📞${h.phone||'?'}
-      <button onclick="edHV('${h.uid}')">Sửa</button>
-      <button class="danger" onclick="confirmDeleteStudent('${h.uid}')">Xoá</button>
-    </div>`).join('')}`;
+      <button id="btn-add-hv">TẠO</button>
+    </div>`;
+
+    entries.forEach(([uid, h]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.innerHTML = `<div><b>${h.n}</b> [${h.l || '?'}] 📧${h.email||'?'} 📞${h.phone||'?'}</div>`;
+
+        const btnGroup = document.createElement('div');
+
+        const btnEdit = document.createElement('button');
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = (e) => { e.stopPropagation(); edHV(uid); };
+        btnGroup.appendChild(btnEdit);
+
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'danger';
+        btnDelete.textContent = 'Xoá';
+        btnDelete.onclick = (e) => { e.stopPropagation(); confirmDeleteStudent(uid); };
+        btnGroup.appendChild(btnDelete);
+
+        const btnHistory = document.createElement('button');
+        btnHistory.textContent = '📋 Lịch sử ĐK';
+        btnHistory.style.marginLeft = '4px';
+        btnHistory.onclick = (e) => { e.stopPropagation(); viewRegHistory(uid); };
+        btnGroup.appendChild(btnHistory);
+
+        card.appendChild(btnGroup);
+        container.appendChild(card);
+    });
+
+    c.innerHTML = '';
+    c.appendChild(container);
+    document.getElementById('btn-add-hv').onclick = addHV;
 }
+
+// Thêm các hàm toàn cục cho nút bấm an toàn
+window.editHV = function(uid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const h = db.users[uid];
+    if (!h) return;
+    const n = prompt("Tên:", h.n), l = prompt("Lớp:", h.l);
+    if (n) h.n = n; if (l) h.l = l;
+    saveDB().then(() => op('2e'));
+};
+
+window.deleteHV = function(uid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const target = db.users[uid];
+    if (!target) return;
+    modal(`⚠️ Xóa học viên "${target.n}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => {
+        const username = target.u;
+        Object.keys(db.parents || {}).forEach(pid => {
+            if (db.parents[pid].childUsername === username) delete db.parents[pid];
+        });
+        delete db.users[uid];
+        addAudit('Xóa học viên', uid, target.n);
+        await saveDB();
+        op('2e');
+        toast('Đã xóa học viên và phụ huynh liên kết');
+    });
+};
 
 async function addHV() {
     const n = document.getElementById('en').value, l = document.getElementById('el').value;
@@ -865,25 +1279,100 @@ async function addHV() {
 }
 
 function confirmDeleteStudent(uid) {
+    if (!isTeacher()) { toast('Không có quyền!', 'error'); return; }
     const target = db.users[uid];
     if (!target) return;
-    modal(`Xóa học viên ${target.n}?`, async () => {
+    modal(`⚠️ Xóa học viên "${target.n}"?<br><small>Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan sẽ bị xóa.</small>`, async () => {
         const username = target.u;
         Object.keys(db.parents || {}).forEach(pid => {
             if (db.parents[pid].childUsername === username) delete db.parents[pid];
         });
         delete db.users[uid];
         addAudit('Xóa học viên', uid, target.n);
-        await saveDB(); op('2e');
+        await saveDB(); 
+        op('2e');
         toast('Đã xóa học viên và phụ huynh liên kết');
     });
 }
 
 async function edHV(uid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
     const h = db.users[uid];
+    if (!h) return;
     const n = prompt("Tên:", h.n), l = prompt("Lớp:", h.l);
     if (n) h.n = n; if (l) h.l = l;
     await saveDB(); op('2e');
+}
+
+function viewRegHistory(uid) {
+    const student = db.users[uid];
+    if (!student) { toast('Không tìm thấy học viên', 'error'); return; }
+    
+    const allHistory = db.sked_history || [];
+    const currentSlots = db.sked.slots || [];
+    const allWeeks = [
+        { t: db.sked.t || 'Tuần hiện tại', date: new Date().toLocaleDateString(), slots: currentSlots, isCurrent: true },
+        ...allHistory.map(w => ({ ...w, isCurrent: false }))
+    ];
+    
+    let html = `<h3>📋 Lịch sử đăng ký: ${student.n}</h3>`;
+    let foundAny = false;
+    
+    allWeeks.forEach(week => {
+        const registeredSlots = week.slots.filter(s => (s.r || []).includes(uid));
+        if (registeredSlots.length > 0) {
+            foundAny = true;
+            html += `<div class="card"><b>📅 ${week.t}</b> <small>(${week.date || 'N/A'})</small><ul>`;
+            registeredSlots.forEach(s => {
+                const slotId = s.id || '';
+                html += `<li style="display:flex; justify-content:space-between; align-items:center;">
+                    ${s.n} (${s.d} - ${s.ati})
+                    <button class="danger" onclick="adminRemoveRegistration('${uid}', '${slotId}', '${week.isCurrent ? 'current' : 'history'}')" style="font-size:12px; padding:4px 8px;">🗑️ Hủy ĐK</button>
+                </li>`;
+            });
+            html += `</ul></div>`;
+        }
+    });
+    
+    if (!foundAny) {
+        html += '<p>Học viên này chưa từng đăng ký tiết nào.</p>';
+    }
+    
+    html += `<br><button onclick="op('2e')">← Quay lại danh sách học viên</button>`;
+    document.getElementById('det-content').innerHTML = html;
+}
+
+async function adminRemoveRegistration(studentUid, slotId, weekType) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    let slot;
+    if (weekType === 'current') {
+        slot = db.sked.slots.find(s => s.id === slotId);
+    } else {
+        toast('Không thể sửa lịch sử cũ, chỉ có thể hủy đăng ký ở tuần hiện tại.', 'error');
+        return;
+    }
+    if (!slot) return;
+    if (!slot.r) slot.r = [];
+    const idx = slot.r.indexOf(studentUid);
+    if (idx > -1) {
+        slot.r.splice(idx, 1);
+        await saveDB();
+        // Gửi thông báo riêng cho học viên
+        const student = db.users[studentUid];
+        const msg = `Lịch học của bạn đã bị thay đổi bởi quản trị viên. Tiết "${slot.n}" (${slot.d} - ${slot.ati}) đã bị hủy. Vui lòng kiểm tra lại lịch học.`;
+        if (!db.private_notif) db.private_notif = {};
+        if (!db.private_notif[studentUid]) db.private_notif[studentUid] = [];
+        db.private_notif[studentUid].push({
+            id: 'msg-' + Date.now(),
+            msg: msg,
+            msgHtml: msg,
+            date: new Date().toLocaleString(),
+            target: studentUid
+        });
+        await saveDB();
+        toast('Đã hủy đăng ký và thông báo cho học viên.');
+        viewRegHistory(studentUid);
+    }
 }
 
 // ----- 2f: Thi cử -----
@@ -920,12 +1409,22 @@ async function saveExam() {
     const container = document.getElementById('exam-questions-container');
     const blocks = container.querySelectorAll('.question-block');
     const questions = [];
-    blocks.forEach(b => {
+    showLoading();
+    for (const b of blocks) {
         const qText = b.querySelector('.q-text')?.value || '';
         const point = parseInt(b.querySelector('.q-point')?.value) || 1;
+        const audioFile = b.querySelector('.q-audio')?.files[0];
+        let audioUrl = '';
+        if (audioFile) {
+            const storageRef = fbStorage.ref('audio_questions/' + Date.now() + '_' + audioFile.name);
+            try {
+                const uploadTask = await storageRef.put(audioFile);
+                audioUrl = await uploadTask.ref.getDownloadURL();
+            } catch (e) { toast('Lỗi tải file âm thanh', 'error'); hideLoading(); return; }
+        }
         if (b.querySelector('.mcq-options')) {
             questions.push({
-                type: 'mcq', q: qText,
+                type: 'mcq', q: qText, audioUrl,
                 a: b.querySelector('.opt-a')?.value || '',
                 b: b.querySelector('.opt-b')?.value || '',
                 c: b.querySelector('.opt-c')?.value || '',
@@ -934,19 +1433,28 @@ async function saveExam() {
                 point
             });
         } else {
-            questions.push({ type: 'essay', q: qText, point });
+            questions.push({ type: 'essay', q: qText, audioUrl, point });
         }
-    });
+    }
     db.exams.push({
         n, start: document.getElementById('x_start').value, end: document.getElementById('x_end').value,
         time: document.getElementById('x_time').value, slot: document.getElementById('x_slot').value,
         p: document.getElementById('x_p').value, st: document.getElementById('x_s').value,
         questions, assignedTo: [], assigned: false
     });
+    hideLoading();
     await saveDB(); op('2f'); toast('Đề thi đã lưu');
 }
 
-async function deleteExam(i) { db.exams.splice(i, 1); await saveDB(); op('2f'); }
+async function deleteExam(i) {
+    const exam = db.exams[i];
+    modal(`⚠️ Xóa đề thi "${exam.n}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => {
+        db.exams.splice(i, 1);
+        await saveDB();
+        op('2f');
+        toast('Đã xóa đề thi');
+    });
+}
 
 function editEx(i) {
     const x = db.exams[i];
@@ -1013,8 +1521,18 @@ function render2g(c) {
 }
 
 function edFee(uid) {
+    if (!isMainAdmin() && !(isSubAdmin() && user.permissions?.includes('finance'))) {
+        toast('Không có quyền truy cập học phí', 'error');
+        op('2g');
+        return;
+    }
     let d = db.data[uid] || (db.data[uid] = {});
     if (!d.fee) d.fee = { slots: 0, rate: 0, paid: 0, logs: [], receipts: [] };
+    d.fee.slots = d.fee.slots || 0;
+    d.fee.rate = d.fee.rate || 0;
+    d.fee.paid = d.fee.paid || 0;
+    d.fee.logs = d.fee.logs || [];
+    d.fee.receipts = d.fee.receipts || [];
     const bi = db.bank_info || {};
     document.getElementById('det-content').innerHTML = `
       <h4>💰 Học phí: ${db.users[uid]?.n || uid}</h4>
@@ -1024,7 +1542,7 @@ function edFee(uid) {
         <label>Nộp thêm: <input id="f_a" type="number" value="0"></label>
         <button onclick="svFee('${uid}')">💾 LƯU</button>
       </div>
-      <div class="card">💰 Nợ: <b>${(d.fee.slots * d.fee.rate - d.fee.paid).toLocaleString()}đ</b></div>
+      <div class="card">💰 Nợ: <b>${((d.fee.slots * d.fee.rate) - d.fee.paid).toLocaleString()}đ</b></div>
       <div class="card">
         <h5>🏦 Thông tin ngân hàng</h5>
         <input id="bankName" placeholder="Tên ngân hàng" value="${bi.bankName||''}">
@@ -1042,14 +1560,29 @@ function edFee(uid) {
           <button onclick="approveReceipt('${uid}',${i})">✅ Duyệt</button>
           <button class="danger" onclick="rejectReceipt('${uid}',${i})">❌ Từ chối</button></div>`).join('') || '<p>Không có biên lai nào.</p>'}
       </div>
-      <hr><h5>Lịch sử thanh toán</h5>${(d.fee.logs || []).map(l => `<div>${l}</div>`).join('')}`;
+      <hr><h5>Lịch sử thanh toán</h5>${(d.fee.logs || []).map(l => `<div>${l}</div>`).join('')}
+      <div class="card" style="margin-top:12px;">
+        <h5>📢 Thông báo nhanh</h5>
+        <button onclick="quickNotifyFee('${uid}', 'fail')" style="margin:4px;">📢 TB: Học phí thất bại</button>
+        <button onclick="quickNotifyFee('${uid}', 'success')" style="margin:4px;">📢 TB: Học phí thành công</button>
+      </div>`;
 }
 
 async function svFee(uid) {
+    if (!isMainAdmin() && !(isSubAdmin() && user.permissions?.includes('finance'))) {
+        toast('Không có quyền', 'error');
+        op('2g');
+        return;
+    }
     let d = db.data[uid].fee;
+    d.slots = d.slots || 0;
+    d.rate = d.rate || 0;
+    d.paid = d.paid || 0;
+    d.logs = d.logs || [];
+    d.receipts = d.receipts || [];
     const a = parseInt(document.getElementById('f_a').value) || 0;
     d.slots = parseInt(document.getElementById('f_s').value) || 0;
-    d.rate = parseInt(document.getElementById('f_r').value) || 0;
+    d.rate = parseInt(document.getElementById('f_rate').value) || 0;
     if (a > 0) { d.paid += a; d.logs.unshift(new Date().toLocaleDateString() + ': +' + a); }
     await saveDB(); op('2g');
 }
@@ -1072,16 +1605,158 @@ async function saveBankInfo() {
 }
 
 async function approveReceipt(uid, i) {
-    const r = db.data[uid].fee.receipts[i];
-    db.data[uid].fee.paid += r.amount;
-    db.data[uid].fee.logs.unshift(`✅ ${r.date}: +${r.amount}đ (${r.note})`);
-    db.data[uid].fee.receipts.splice(i, 1);
+    if (!isMainAdmin() && !(isSubAdmin() && user.permissions?.includes('finance'))) { toast('Không có quyền', 'error'); op('2g'); return; }
+    const d = db.data[uid].fee;
+    d.receipts = d.receipts || [];
+    if (!d.receipts[i]) return;
+    const r = d.receipts[i];
+    d.paid = (d.paid || 0) + r.amount;
+    d.logs = d.logs || [];
+    d.logs.unshift(`✅ ${r.date}: +${r.amount}đ (${r.note})`);
+    d.receipts.splice(i, 1);
     await saveDB(); edFee(uid);
 }
 
 async function rejectReceipt(uid, i) {
-    db.data[uid].fee.receipts.splice(i, 1);
+    if (!isMainAdmin() && !(isSubAdmin() && user.permissions?.includes('finance'))) { toast('Không có quyền', 'error'); op('2g'); return; }
+    const d = db.data[uid].fee;
+    d.receipts = d.receipts || [];
+    d.receipts.splice(i, 1);
     await saveDB(); edFee(uid);
+}
+// ----- voucher: Quản lý voucher -----
+function renderVoucher(c) {
+    if (!db.vouchers) db.vouchers = [];
+    if (!db.voucher_history) db.voucher_history = [];
+    c.innerHTML = `<h3>🎟 Quản lý Voucher</h3>
+    <div class="card">
+      <b>Tạo voucher mới</b>
+      <input id="v_code" placeholder="Mã voucher (đúng 12 ký tự số+chữ)" maxlength="12" minlength="12">
+      <input id="v_amount" type="number" placeholder="Số tiền khấu trừ (VNĐ)">
+      <input id="v_uses" type="number" placeholder="Số lần sử dụng tối đa" value="1" min="1">
+      <button onclick="addVoucher()">💾 Tạo voucher</button>
+      <small style="color:var(--text-secondary);">Mã voucher phải đúng 12 ký tự, bao gồm cả chữ và số</small>
+    </div>
+    <hr>
+    <h4>📋 Danh sách voucher</h4>
+    ${(db.vouchers || []).map((v, i) => `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+        <div>
+          <b>🎟 ${v.code}</b><br>
+          💰 Giảm: ${v.amount.toLocaleString()}đ | 🔄 Còn: ${v.remaining}/${v.maxUses} lượt<br>
+          <small>${v.active ? '✅ Đang hoạt động' : '❌ Đã hủy'} | Tạo bởi: ${v.createdBy||'N/A'}</small>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="copyVoucherCode('${v.code}')">📋 Sao chép</button>
+          ${v.active ? `<button class="danger" onclick="cancelVoucher(${i})">🚫 Hủy</button>` : ''}
+          <button class="danger" onclick="deleteVoucher(${i})">🗑️ Xóa</button>
+        </div>
+      </div>`).join('') || '<p>Chưa có voucher nào.</p>'}
+    <hr>
+    <h4>📜 Lịch sử sử dụng voucher</h4>
+    <button class="danger" onclick="clearVoucherHistory()" style="margin-bottom:10px;">🗑️ Xóa lịch sử</button>
+    ${(db.voucher_history || []).slice(0, 50).map(h => `
+      <div class="card"><small>${h.date}</small> - 🎟 ${h.code} - 👤 ${h.userName||h.uid} - 💰 ${h.amount.toLocaleString()}đ</div>`).join('') || '<p>Chưa có lịch sử.</p>'}`;
+}
+
+async function clearVoucherHistory() {
+    modal('Xóa toàn bộ lịch sử sử dụng voucher?', async () => {
+        db.voucher_history = [];
+        await saveDB();
+        op('voucher');
+        toast('Đã xóa lịch sử voucher');
+    });
+}
+
+async function addVoucher() {
+    const code = document.getElementById('v_code').value.trim();
+    const amount = parseInt(document.getElementById('v_amount').value) || 0;
+    const maxUses = parseInt(document.getElementById('v_uses').value) || 1;
+    
+    if (!code || code.length !== 12) { toast('Mã voucher phải đúng 12 ký tự!', 'error'); return; }
+    if (!/[a-zA-Z]/.test(code) || !/[0-9]/.test(code)) { toast('Mã voucher phải có cả chữ và số!', 'error'); return; }
+    if (amount <= 0) { toast('Số tiền khấu trừ phải > 0', 'error'); return; }
+    if ((db.vouchers || []).some(v => v.code === code)) { toast('Mã voucher đã tồn tại!', 'error'); return; }
+    
+    if (!db.vouchers) db.vouchers = [];
+    db.vouchers.push({ code, amount, maxUses, remaining: maxUses, active: true, createdBy: user.n, createdAt: new Date().toLocaleString() });
+    await saveDB();
+    op('voucher');
+    toast('Đã tạo voucher');
+}
+
+function copyVoucherCode(code) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(code);
+        toast('Đã sao chép mã: ' + code);
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Đã sao chép mã: ' + code);
+    }
+}
+
+async function cancelVoucher(i) {
+    modal('Hủy voucher này? Học viên sẽ không dùng được nữa.', async () => {
+        db.vouchers[i].active = false;
+        await saveDB();
+        op('voucher');
+        toast('Đã hủy voucher');
+    });
+}
+
+async function deleteVoucher(i) {
+    modal('Xóa vĩnh viễn voucher này?', async () => {
+        db.vouchers.splice(i, 1);
+        await saveDB();
+        op('voucher');
+        toast('Đã xóa voucher');
+    });
+}
+
+// ========== THÔNG BÁO NHANH ==========
+async function quickNotifyScore(uid) {
+    const student = db.users[uid];
+    if (!student) return;
+    const msg = 'Điểm số của bạn đã được cập nhật. Hãy kiểm tra lại';
+    
+    if (!db.private_notif) db.private_notif = {};
+    if (!db.private_notif[uid]) db.private_notif[uid] = [];
+    db.private_notif[uid].push({
+        id: 'msg-' + Date.now(),
+        msg: msg,
+        msgHtml: msg,
+        date: new Date().toLocaleString(),
+        target: uid
+    });
+    
+    await saveDB();
+    toast('Đã gửi thông báo cho ' + student.n);
+}
+
+async function quickNotifyFee(uid, type) {
+    const student = db.users[uid];
+    if (!student) return;
+    const msg = type === 'fail' 
+        ? 'Đóng học phí thất bại kể từ lúc gửi biên lai, xin vui lòng kiểm tra và liên hệ admin' 
+        : 'Đóng học phí thành công, vui lòng kiểm tra lại số dư';
+    
+    if (!db.private_notif) db.private_notif = {};
+    if (!db.private_notif[uid]) db.private_notif[uid] = [];
+    db.private_notif[uid].push({
+        id: 'msg-' + Date.now(),
+        msg: msg,
+        msgHtml: msg,
+        date: new Date().toLocaleString(),
+        target: uid
+    });
+    
+    await saveDB();
+    toast('Đã gửi thông báo cho ' + student.n);
 }
 
 // ----- res: Kết quả (danh sách) -----
@@ -1095,6 +1770,7 @@ function edScr(uid) {
     if (!d.pts_tl) d.pts_tl = [];
     if (!d.pts_kt) d.pts_kt = [];
     const row = (p, i, t) => `<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td><td><button class="danger" onclick="deletePoint('${uid}','${t}',${i})">X</button></td></tr>`;
+    const safeLength = (arr) => (arr && arr.length) ? arr.length : 0;
     document.getElementById('det-content').innerHTML = `
       <h4>Điểm: ${db.users[uid]?.n || uid}</h4>
       <div class="card">
@@ -1102,7 +1778,11 @@ function edScr(uid) {
         <select id="p_t"><option value="tl">Tích lũy</option><option value="kt">Kiểm tra/Thi</option></select>
         <button onclick="adPt('${uid}')">THÊM</button>
       </div>
-      <table>${d.pts_tl.map((p, i) => row(p, i, 'tl')).join('')}${d.pts_kt.map((p, i) => row(p, i, 'kt')).join('')}</table>`;
+      <table>${d.pts_tl.map((p, i) => row(p, i, 'tl')).join('')}${d.pts_kt.map((p, i) => row(p, i, 'kt')).join('')}</table>
+      <div class="card" style="margin-top:12px;">
+        <h5>📢 Thông báo nhanh</h5>
+        <button onclick="quickNotifyScore('${uid}')">📢 TB: "Điểm số của bạn đã được cập nhật. Hãy kiểm tra lại"</button>
+      </div>`;
 }
 
 async function adPt(uid) {
@@ -1114,19 +1794,105 @@ async function adPt(uid) {
 }
 
 async function deletePoint(uid, t, i) {
-    if (t === 'tl') db.data[uid].pts_tl.splice(i, 1);
-    else db.data[uid].pts_kt.splice(i, 1);
-    await saveDB(); edScr(uid);
+    modal('⚠️ Xóa điểm này?', async () => {
+        if (t === 'tl') db.data[uid].pts_tl.splice(i, 1);
+        else db.data[uid].pts_kt.splice(i, 1);
+        await saveDB();
+        edScr(uid);
+        toast('Đã xóa điểm');
+    });
 }
 
 // ----- admins: Quản trị viên -----
 function renderAdmins(c) {
-    const admins = Object.values(db.users||{}).filter(u => u.r === 'admin' || u.r === 'subadmin');
-    c.innerHTML = `<h3>👑 Quản trị viên</h3>` +
-      admins.map(a => `<div class="card"><b>${a.n}</b> [${a.r}] ${isMainAdmin() && a.uid !== user.uid ? `<button class="danger" onclick="confirmDeleteUser('${a.uid}')">Xóa</button>` : ''}</div>`).join('');
-    if (isMainAdmin()) {
-        c.innerHTML += `<div class="card"><input id="ad_name" placeholder="Tên"><input id="ad_u" placeholder="Tên (.pn)"><input id="ad_p" placeholder="Pass" type="password"><select id="ad_role"><option value="admin">Admin</option><option value="subadmin">Admin phụ</option></select><button onclick="addAdmin()">Thêm</button></div>`;
-    }
+    if (!isMainAdmin()) { c.innerHTML = '<p>Không có quyền xem mục này</p>'; return; }
+    const admins = Object.entries(db.users||{}).filter(([uid, u]) => u.r === 'admin' || u.r === 'subadmin');
+    const container = document.createElement('div');
+    container.innerHTML = `<h3>👑 Quản trị viên</h3>`;
+    
+    admins.forEach(([uid, a]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        const permStr = a.r === 'subadmin' ? (a.permissions || []).join(', ') || 'Chưa có quyền' : 'Toàn quyền';
+        card.innerHTML = `<div><b>${a.n}</b> [${a.r}] - Quyền: ${permStr}</div>`;
+        
+        const btnGroup = document.createElement('div');
+        if (a.r === 'subadmin') {
+            const btnPerm = document.createElement('button');
+            btnPerm.textContent = '🔧 Phân quyền';
+            btnPerm.onclick = (e) => { e.stopPropagation(); editPermissions(uid); };
+            btnGroup.appendChild(btnPerm);
+        }
+        if (uid !== user.uid) {
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'danger';
+            btnDelete.textContent = 'Xóa';
+            btnDelete.onclick = (e) => { e.stopPropagation(); confirmDeleteUser(uid); };
+            btnGroup.appendChild(btnDelete);
+        }
+        card.appendChild(btnGroup);
+        container.appendChild(card);
+    });
+    
+    const addForm = document.createElement('div');
+    addForm.className = 'card';
+    addForm.innerHTML = `<input id="ad_name" placeholder="Tên"><input id="ad_u" placeholder="Tên (.pn)">
+        <input id="ad_p" placeholder="Pass" type="password">
+        <select id="ad_role"><option value="admin">Admin</option><option value="subadmin">Admin phụ</option></select>
+        <button id="btn-add-admin">Thêm</button>`;
+    container.appendChild(addForm);
+    
+    c.innerHTML = '';
+    c.appendChild(container);
+    document.getElementById('btn-add-admin').onclick = addAdmin;
+}
+
+function editPermissions(uid) {
+    if (!isMainAdmin()) { toast('Không có quyền', 'error'); return; }
+    const target = db.users[uid];
+    if (!target || target.r !== 'subadmin') return;
+    
+    const allPerms = ['2a','2b','2c','2e','2f','res','2g','teachers','parents','flashcards_admin','voucher','support','audit','config','cleanup'];
+    const currentPerms = target.permissions || [];
+    
+    let html = `<h3>🔧 Phân quyền cho: ${target.n}</h3>`;
+    html += `<div class="card" style="display:flex; flex-wrap:wrap; gap:8px;">`;
+    allPerms.forEach(p => {
+        const checked = currentPerms.includes(p) ? 'checked' : '';
+        const labels = {
+            '2a':'Lịch học', '2b':'Thông báo', '2c':'Bài tập', '2e':'Học viên', 
+            '2f':'Thi cử', 'res':'Kết quả', '2g':'Học phí', 'teachers':'Giáo viên', 
+            'parents':'Phụ huynh', 'flashcards_admin':'Flashcard', 'voucher':'Voucher',
+            'support':'Hỗ trợ', 'audit':'Lịch sử HĐ', 'config':'Cài đặt', 'cleanup':'Dọn dẹp'
+        };
+        html += `<label style="display:flex; align-items:center; gap:4px; margin:4px; padding:4px 8px; background:var(--surface-alt); border-radius:8px;">
+            <input type="checkbox" id="perm_${p}" ${checked}> ${p} - ${labels[p] || p}
+        </label>`;
+    });
+    html += `</div>
+        <button onclick="savePermissions('${uid}')">💾 Lưu quyền</button>
+        <button onclick="op('admins')">← Quay lại</button>`;
+    document.getElementById('det-content').innerHTML = html;
+}
+
+async function savePermissions(uid) {
+    if (!isMainAdmin()) return;
+    const target = db.users[uid];
+    if (!target || target.r !== 'subadmin') return;
+    
+    const allPerms = ['2a','2b','2c','2e','2f','res','2g','teachers','parents','flashcards_admin','voucher','support','audit','config','cleanup'];
+    const selected = [];
+    allPerms.forEach(p => {
+        const checkbox = document.getElementById('perm_'+p);
+        if (checkbox && checkbox.checked) selected.push(p);
+    });
+    target.permissions = selected;
+    await saveDB();
+    toast('Đã lưu quyền cho ' + target.n);
+    op('admins');
 }
 
 async function addAdmin() {
@@ -1144,9 +1910,16 @@ async function addAdmin() {
 }
 
 function confirmDeleteUser(uid) {
+    if (!isMainAdmin()) { toast('Chỉ Admin chính mới có quyền xóa!', 'error'); return; }
     const target = db.users[uid];
     if (!target) return;
-    modal(`Xóa người dùng ${target.n}?`, async () => { delete db.users[uid]; await saveDB(); op('admins'); });
+    modal(`⚠️ Xóa người dùng "${target.n}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => { 
+        delete db.users[uid]; 
+        addAudit('Xóa người dùng', uid, target.n);
+        await saveDB(); 
+        op('admins'); 
+        toast('Đã xóa người dùng');
+    });
 }
 
 // ----- support: Hỗ trợ -----
@@ -1158,17 +1931,65 @@ function renderSupport(c) {
 
 // ----- teachers: Giáo viên -----
 function renderTeachers(c) {
-    const teachers = Object.values(db.users||{}).filter(u => u.r === 'teacher');
-    c.innerHTML = `<h3>🍎 Giáo viên</h3>
+    const entries = Object.entries(db.users||{}).filter(([uid, u]) => u.r === 'teacher');
+    const container = document.createElement('div');
+    container.innerHTML = `<h3>🍎 Giáo viên</h3>
     <div class="card">
       <input id="t_name" placeholder="Họ và tên"><input id="t_phone" placeholder="Số điện thoại">
       <input id="t_u" placeholder="Tài khoản (sẽ thêm .pn.tc.edu)"><input id="t_p" placeholder="Mật khẩu" type="password">
-      <button onclick="addTeacher()">TẠO</button>
-    </div>
-    ${teachers.map(t => `<div class="card"><b>${t.n}</b> 📞${t.phone||'?'} 👤${t.u}
-      <button onclick="editTeacher('${t.uid}')">Sửa</button>
-      <button class="danger" onclick="confirmDeleteUser('${t.uid}')">Xoá</button></div>`).join('')}`;
+      <button id="btn-add-teacher">TẠO</button>
+    </div>`;
+    
+    entries.forEach(([uid, t]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.innerHTML = `<div><b>${t.n}</b> 📞${t.phone||'?'} 👤${t.u}</div>`;
+        
+        const btnGroup = document.createElement('div');
+        const btnEdit = document.createElement('button');
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = (e) => { e.stopPropagation(); editTeacher(uid); };
+        btnGroup.appendChild(btnEdit);
+        
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'danger';
+        btnDelete.textContent = 'Xoá';
+        btnDelete.onclick = (e) => { e.stopPropagation(); confirmDeleteUser(uid); };
+        btnGroup.appendChild(btnDelete);
+        
+        card.appendChild(btnGroup);
+        container.appendChild(card);
+    });
+    
+    c.innerHTML = '';
+    c.appendChild(container);
+    document.getElementById('btn-add-teacher').onclick = addTeacher;
 }
+
+window.editTeacher = function(uid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const t = db.users[uid];
+    if (!t) return;
+    const n = prompt("Tên:", t.n), phone = prompt("SĐT:", t.phone);
+    if (n) t.n = n; if (phone) t.phone = phone;
+    saveDB().then(() => op('teachers'));
+};
+
+window.deleteUser = function(uid) {
+    if (!isMainAdmin()) { toast('Chỉ Admin chính mới có quyền xóa!', 'error'); return; }
+    const target = db.users[uid];
+    if (!target) return;
+    modal(`⚠️ Xóa người dùng "${target.n}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => {
+        delete db.users[uid];
+        addAudit('Xóa người dùng', uid, target.n);
+        await saveDB();
+        op('admins');
+        toast('Đã xóa người dùng');
+    });
+};
 
 async function addTeacher() {
     const n = document.getElementById('t_name').value, phone = document.getElementById('t_phone').value;
@@ -1182,7 +2003,9 @@ async function addTeacher() {
 }
 
 async function editTeacher(uid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
     const t = db.users[uid];
+    if (!t) return;
     const n = prompt("Tên:", t.n), phone = prompt("SĐT:", t.phone);
     if (n) t.n = n; if (phone) t.phone = phone;
     await saveDB(); op('teachers');
@@ -1190,31 +2013,86 @@ async function editTeacher(uid) {
 
 // ----- parents: Phụ huynh -----
 function renderParents(c) {
-    const parents = Object.values(db.parents||{});
+    const parents = Object.entries(db.parents||{});
     const students = Object.entries(db.users||{}).filter(([uid, u]) => u.r === 'hv');
-    c.innerHTML = `<h3>👪 Phụ huynh</h3>
+    const container = document.createElement('div');
+    let options = '<option value="">Chọn con</option>';
+    students.forEach(([uid, u]) => { options += `<option value="${uid}">${u.n}</option>`; });
+    container.innerHTML = `<h3>👪 Phụ huynh</h3>
     <div class="card">
       <input id="p_name" placeholder="Họ và tên">
       <input id="p_phone" placeholder="Số điện thoại (dùng làm tài khoản)">
-      <select id="p_child"><option value="">Chọn con</option>
-        ${students.map(([uid, u]) => `<option value="${uid}">${u.n}</option>`).join('')}
-      </select>
-      <button onclick="addParent()">LƯU</button>
-    </div>
-    ${parents.map(p => `<div class="card"><b>${p.name}</b> 📞${p.phone} 👶${p.childName||''}
-      <button onclick="editParent('${p.id}')">Sửa</button>
-      <button class="danger" onclick="confirmDeleteParent('${p.id}')">Xoá</button>
-    </div>`).join('')}`;
+      <input id="p_pass" type="password" placeholder="Mật khẩu">
+      <select id="p_child">${options}</select>
+      <button id="btn-add-parent">LƯU</button>
+    </div>`;
+    
+    parents.forEach(([pid, p]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.innerHTML = `<div><b>${p.name}</b> 📞${p.phone} 👶${p.childName||''}</div>`;
+        
+        const btnGroup = document.createElement('div');
+        const btnEdit = document.createElement('button');
+        btnEdit.textContent = 'Sửa';
+        btnEdit.onclick = (e) => { e.stopPropagation(); editParent(pid); };
+        btnGroup.appendChild(btnEdit);
+        
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'danger';
+        btnDelete.textContent = 'Xoá';
+        btnDelete.onclick = (e) => { e.stopPropagation(); confirmDeleteParent(pid); };
+        btnGroup.appendChild(btnDelete);
+        
+        card.appendChild(btnGroup);
+        container.appendChild(card);
+    });
+    
+    c.innerHTML = '';
+    c.appendChild(container);
+    document.getElementById('btn-add-parent').onclick = addParent;
 }
+
+window.editParent = function(pid) {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const p = db.parents[pid];
+    if (!p) return;
+    const newName = prompt("Tên phụ huynh:", p.name);
+    const newPhone = prompt("Số điện thoại:", p.phone);
+    const newPass = prompt("Mật khẩu mới (để trống nếu không đổi):");
+    if (newName) p.name = newName;
+    if (newPhone) p.phone = newPhone;
+    if (newPass) p.p = CryptoJS.SHA256(newPass).toString();
+    saveDB().then(() => op('parents'));
+};
+
+window.deleteParent = function(pid) {
+    if (!isTeacher()) { toast('Không có quyền!', 'error'); return; }
+    const target = db.parents[pid];
+    if (!target) return;
+    modal(`⚠️ Xóa phụ huynh "${target.name}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => {
+        delete db.parents[pid];
+        addAudit('Xóa phụ huynh', pid, target.name);
+        await saveDB();
+        op('parents');
+        toast('Đã xóa phụ huynh');
+    });
+};
 
 async function addParent() {
     const name = document.getElementById('p_name').value.trim();
     const phone = document.getElementById('p_phone').value.trim();
+    const pass = document.getElementById('p_pass').value;
     const childUid = document.getElementById('p_child').value;
-    if (!name || !phone) { toast('Điền đầy đủ thông tin', 'error'); return; }
+    if (!name || !phone || !pass) { toast('Điền đầy đủ thông tin (bao gồm mật khẩu)', 'error'); return; }
     const child = db.users[childUid];
     if (!child) { toast('Học viên không tồn tại', 'error'); return; }
-    db.parents['parent-' + Date.now()] = { id: 'parent-' + Date.now(), name, phone, childUsername: child.u, childName: child.n, notif: [] };
+    const hashed = CryptoJS.SHA256(pass).toString();
+    const newId = 'parent-' + Date.now();
+    db.parents[newId] = { id: newId, name, phone, p: hashed, childUsername: child.u, childName: child.n, notif: [] };
     await saveDB(); op('parents'); toast('Đã thêm phụ huynh');
 }
 
@@ -1223,15 +2101,24 @@ async function editParent(pid) {
     if (!p) return;
     const newName = prompt("Tên phụ huynh:", p.name);
     const newPhone = prompt("Số điện thoại:", p.phone);
+    const newPass = prompt("Mật khẩu mới (để trống nếu không đổi):");
     if (newName) p.name = newName;
     if (newPhone) p.phone = newPhone;
+    if (newPass) p.p = CryptoJS.SHA256(newPass).toString();
     await saveDB(); op('parents');
 }
 
 function confirmDeleteParent(pid) {
+    if (!isTeacher()) { toast('Không có quyền!', 'error'); return; }
     const target = db.parents[pid];
     if (!target) return;
-    modal(`Xóa phụ huynh ${target.name}?`, async () => { delete db.parents[pid]; await saveDB(); op('parents'); });
+    modal(`⚠️ Xóa phụ huynh "${target.name}"?<br><small>Hành động này không thể hoàn tác.</small>`, async () => { 
+        delete db.parents[pid]; 
+        addAudit('Xóa phụ huynh', pid, target.name);
+        await saveDB(); 
+        op('parents'); 
+        toast('Đã xóa phụ huynh');
+    });
 }
 
 // ----- audit: Lịch sử hoạt động -----
@@ -1274,13 +2161,371 @@ function togglePassword() {
     else { pw.type = 'password'; icon.textContent = '👁️'; }
 }
 
+// ========== FLASHCARD ADMIN ==========
+function renderFlashcardsAdmin(c) {
+    if (!db.custom_flashcards) db.custom_flashcards = [];
+    if (!db.flashcard_categories) db.flashcard_categories = ['HSK1', 'HSK2', 'HSK3'];
+    
+    // Lấy danh sách danh mục hiện có
+    const categories = db.flashcard_categories || ['HSK1', 'HSK2', 'HSK3'];
+    
+    c.innerHTML = `<h3>🀄 Quản lý Thẻ Hán tự</h3>
+    <div class="card">
+      <b>➕ Thêm thẻ mới</b>
+      <input id="fc_cn" placeholder="Chữ Hán (VD: 好)">
+      <input id="fc_py" placeholder="Phiên âm (VD: hǎo)">
+      <input id="fc_vn" placeholder="Nghĩa tiếng Việt (VD: tốt)">
+      <select id="fc_category">
+        ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+      </select>
+      <button onclick="addFlashcard()">💾 Thêm thẻ</button>
+    </div>
+    
+    <div class="card">
+      <b>➕ Thêm danh mục mới</b>
+      <input id="fc_new_category" placeholder="Tên danh mục mới (VD: HSK4)">
+      <button onclick="addFlashcardCategory()">💾 Thêm danh mục</button>
+      <button class="danger" onclick="deleteFlashcardCategory()" style="margin-left:8px;">🗑️ Xóa danh mục đã chọn</button>
+    </div>
+    <hr>
+    <div class="card">
+      <b>🔍 Lọc theo chủ đề:</b>
+      <select id="fc_admin_filter" onchange="filterAdminFlashcards()">
+        <option value="all">Tất cả (${db.custom_flashcards.length})</option>
+        ${categories.map(cat => `<option value="${cat}">${cat} (${db.custom_flashcards.filter(fc => fc.category === cat).length} thẻ)</option>`).join('')}
+      </select>
+    </div>
+    <div id="fc_admin_list">
+      ${(db.custom_flashcards || []).map((fc, i) => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div><b>${fc.cn}</b> - ${fc.py} - ${fc.vn} <small>[${fc.category}]</small></div>
+          <div>
+            <button onclick="editFlashcard(${i})">✏️ Sửa</button>
+            <button class="danger" onclick="deleteFlashcard(${i})">🗑️ Xóa</button>
+          </div>
+        </div>`).join('') || '<p>Chưa có thẻ nào.</p>'}
+    </div>`;
+}
+
+function filterAdminFlashcards() {
+    const cat = document.getElementById('fc_admin_filter')?.value || 'all';
+    const cards = db.custom_flashcards || [];
+    const filtered = cat === 'all' ? cards : cards.filter(fc => fc.category === cat);
+    const list = document.getElementById('fc_admin_list');
+    if (!list) return;
+    list.innerHTML = filtered.map((fc, i) => `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>${fc.cn}</b> - ${fc.py} - ${fc.vn} <small>[${fc.category}]</small></div>
+        <div>
+          <button onclick="editFlashcard(${cards.indexOf(fc)})">✏️ Sửa</button>
+          <button class="danger" onclick="deleteFlashcard(${cards.indexOf(fc)})">🗑️ Xóa</button>
+        </div>
+      </div>`).join('') || '<p>Không có thẻ nào trong chủ đề này.</p>';
+}
+
+function filterFlashcardsByCategory(cat) {
+    const list = document.getElementById('flashcard-list');
+    if (!list) return;
+    const cards = db.custom_flashcards || [];
+    const filtered = cat === 'all' ? cards : cards.filter(fc => fc.category === cat);
+    list.innerHTML = filtered.map((fc, i) => `
+      <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div><b>${fc.cn}</b> - ${fc.py} - ${fc.vn} <small>[${fc.category}]</small></div>
+        <div>
+          <button onclick="editFlashcard(${cards.indexOf(fc)})">✏️ Sửa</button>
+          <button class="danger" onclick="deleteFlashcard(${cards.indexOf(fc)})">🗑️ Xóa</button>
+        </div>
+      </div>`).join('') || '<p>Chưa có thẻ nào.</p>';
+}
+
+async function addFlashcard() {
+    const cn = document.getElementById('fc_cn').value.trim();
+    const py = document.getElementById('fc_py').value.trim();
+    const vn = document.getElementById('fc_vn').value.trim();
+    const category = document.getElementById('fc_category').value;
+    
+    if (!cn || !py || !vn) { toast('Điền đầy đủ thông tin!', 'error'); return; }
+    
+    if (!db.custom_flashcards) db.custom_flashcards = [];
+    db.custom_flashcards.push({ cn, py, vn, category, addedBy: user.n, addedAt: new Date().toLocaleString() });
+    await saveDB();
+    op('flashcards_admin');
+    toast('Đã thêm thẻ mới');
+}
+
+async function addFlashcardCategory() {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const newCat = document.getElementById('fc_new_category').value.trim();
+    if (!newCat) { toast('Nhập tên danh mục', 'error'); return; }
+    
+    if (!db.flashcard_categories) db.flashcard_categories = ['HSK1', 'HSK2', 'HSK3'];
+    
+    if (db.flashcard_categories.includes(newCat)) {
+        toast('Danh mục đã tồn tại!', 'error');
+        return;
+    }
+    
+    db.flashcard_categories.push(newCat);
+    await saveDB();
+    op('flashcards_admin');
+    toast('Đã thêm danh mục: ' + newCat);
+}
+
+async function deleteFlashcardCategory() {
+    if (!isTeacher()) { toast('Không có quyền', 'error'); return; }
+    const catToDelete = document.getElementById('fc_category').value;
+    if (!catToDelete) { toast('Chọn danh mục cần xóa', 'error'); return; }
+    
+    if (!db.flashcard_categories) db.flashcard_categories = ['HSK1', 'HSK2', 'HSK3'];
+    
+    const cardsInCategory = (db.custom_flashcards || []).filter(fc => fc.category === catToDelete);
+    if (cardsInCategory.length > 0) {
+        toast('Không thể xóa danh mục đang có ' + cardsInCategory.length + ' thẻ. Hãy xóa hết thẻ trước.', 'error');
+        return;
+    }
+    
+    modal('⚠️ Xóa danh mục "' + catToDelete + '"?', async () => {
+        db.flashcard_categories = db.flashcard_categories.filter(c => c !== catToDelete);
+        await saveDB();
+        op('flashcards_admin');
+        toast('Đã xóa danh mục: ' + catToDelete);
+    });
+}
+
+async function editFlashcard(i) {
+    const fc = db.custom_flashcards[i];
+    const cn = prompt('Chữ Hán:', fc.cn);
+    if (!cn) return;
+    const py = prompt('Phiên âm:', fc.py);
+    if (!py) return;
+    const vn = prompt('Nghĩa:', fc.vn);
+    if (!vn) return;
+    
+    fc.cn = cn;
+    fc.py = py;
+    fc.vn = vn;
+    await saveDB();
+    op('flashcards_admin');
+    toast('Đã cập nhật thẻ');
+}
+
+async function deleteFlashcard(i) {
+    const fc = db.custom_flashcards[i];
+    modal(`⚠️ Xóa thẻ "${fc.cn} - ${fc.vn}"?`, async () => {
+        db.custom_flashcards.splice(i, 1);
+        await saveDB();
+        op('flashcards_admin');
+        toast('Đã xóa thẻ');
+    });
+}
+
+// ========== FLASHCARD RENDER (HỌC VIÊN) ==========
+function renderFlashcards(parentEl) {
+    const allVocab = [...(db.custom_flashcards || [])];
+    
+    if (allVocab.length === 0) {
+        parentEl.innerHTML = `<h3>🀄 Thư viện Hán tự</h3>
+          <div class="card" style="text-align:center; padding:40px;">
+            <p>Chưa có thẻ nào. Hãy liên hệ giáo viên để thêm từ vựng.</p>
+          </div>
+          <button onclick="sv('profile')" style="margin-top:10px;">← Quay lại</button>`;
+        return;
+    }
+    
+    const categories = ['Tất cả', ...new Set(allVocab.map(v => v.category || 'Khác'))];
+    
+    let html = `<h3>🀄 Thư viện Hán tự</h3>
+      <div class="card">
+        <b>🔍 Chọn chủ đề:</b>
+        <select id="fc_student_filter" onchange="filterStudentFlashcards()">
+          ${categories.map(cat => `<option value="${cat}">${cat} (${cat === 'Tất cả' ? allVocab.length : allVocab.filter(v => (v.category || 'Khác') === cat).length} thẻ)</option>`).join('')}
+        </select>
+      </div>
+      <div class="card" style="text-align:center; padding:30px;" id="fc_student_container">
+      </div>
+      <button onclick="sv('profile')" style="margin-top:10px;">← Quay lại</button>`;
+    parentEl.innerHTML = html;
+    
+    currentFlashcardIndex = 0;
+    window._fc_all = allVocab;
+    renderFlashcardCard(allVocab);
+}
+
+function filterStudentFlashcards() {
+    const cat = document.getElementById('fc_student_filter')?.value || 'Tất cả';
+    const allVocab = window._fc_all || [...(db.custom_flashcards || [])];
+    const filtered = cat === 'Tất cả' ? allVocab : allVocab.filter(v => (v.category || 'Khác') === cat);
+    currentFlashcardIndex = 0;
+    renderFlashcardCard(filtered);
+}
+
+function renderFlashcardCard(vocabArr) {
+    if (vocabArr.length === 0) {
+        document.getElementById('fc_student_container').innerHTML = '<p>Không có thẻ nào trong chủ đề này</p>';
+        return;
+    }
+    window._fc_current = vocabArr;
+    const v = vocabArr[0];
+    document.getElementById('fc_student_container').innerHTML = `
+        <div id="flashcard" onclick="flipCard()" style="width:100%; max-width:320px; margin:0 auto; height:220px; perspective:1000px; cursor:pointer;">
+          <div id="flashcard-inner" style="position:relative; width:100%; height:100%; transition:transform 0.6s; transform-style:preserve-3d;">
+            <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; background:var(--surface); border:2px solid var(--accent); border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <span id="fc-cn" style="font-size:60px;">${v.cn}</span>
+              <small style="color:var(--text-secondary);">Bấm để lật</small>
+            </div>
+            <div style="position:absolute; width:100%; height:100%; backface-visibility:hidden; background:var(--surface-alt); border:2px solid var(--success); border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; transform:rotateY(180deg);">
+              <span id="fc-py" style="font-size:28px; color:var(--accent);">${v.py}</span>
+              <span id="fc-vn" style="font-size:24px; margin-top:10px;">${v.vn}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:center; gap:20px; margin-top:20px;">
+          <button class="ghost" onclick="prevCard()">◀ Trước</button>
+          <span id="fc-progress">1 / ${vocabArr.length}</span>
+          <button class="ghost" onclick="nextCard()">Tiếp ▶</button>
+        </div>
+        <button onclick="shuffleCards()" style="margin-top:10px;">🔀 Xáo trộn</button>`;
+    isFlipped = false;
+}
+
+function flipCard() {
+    isFlipped = !isFlipped;
+    document.getElementById('flashcard-inner').style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+}
+
+function nextCard() {
+    const arr = window._fc_current || db.custom_flashcards || [];
+    currentFlashcardIndex = (currentFlashcardIndex + 1) % arr.length;
+    updateFlashcardDisplay(arr);
+}
+
+function prevCard() {
+    const arr = window._fc_current || db.custom_flashcards || [];
+    currentFlashcardIndex = (currentFlashcardIndex - 1 + arr.length) % arr.length;
+    updateFlashcardDisplay(arr);
+}
+
+function updateFlashcardDisplay(arr) {
+    const v = arr[currentFlashcardIndex];
+    document.getElementById('fc-cn').innerText = v.cn;
+    document.getElementById('fc-py').innerText = v.py;
+    document.getElementById('fc-vn').innerText = v.vn;
+    document.getElementById('fc-progress').innerText = `${currentFlashcardIndex + 1} / ${arr.length}`;
+    document.getElementById('flashcard-inner').style.transform = 'rotateY(0deg)';
+    isFlipped = false;
+}
+
+function shuffleCards() {
+    const arr = window._fc_current || db.custom_flashcards || [];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    currentFlashcardIndex = 0;
+    updateFlashcardDisplay(arr);
+    toast('Đã xáo trộn thẻ');
+}
+// ========== CANVAS VIẾT HÁN TỰ ==========
+let writingCanvas, writingCtx, isDrawing = false;
+let canvasHistory = [];
+
+function renderWritingPad(parentEl) {
+    const allCards = db.custom_flashcards || [];
+    const card = allCards.length > 0 ? allCards[currentFlashcardIndex % allCards.length] : null;
+    const cn = card ? card.cn : '爱';
+    const py = card ? card.py : 'ài';
+    const vn = card ? card.vn : 'yêu';
+    
+    parentEl.innerHTML = `
+      <h3>✍️ Tập viết chữ Hán</h3>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:80px; margin:10px 0; color:var(--text);">${cn}</div>
+        <small style="color:var(--text-secondary);">${py} - ${vn}</small>
+      </div>
+      <div class="card" style="padding:10px;">
+        <canvas id="writingCanvas" width="300" height="300" style="border:2px dashed var(--border); border-radius:12px; width:100%; max-width:300px; touch-action:none; cursor:crosshair; background:white;"></canvas>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:10px; flex-wrap:wrap;">
+          <button onclick="clearCanvas()">🧹 Xóa</button>
+          <button onclick="undoCanvas()">↩ Lùi</button>
+          <button onclick="saveCanvasImage()">💾 Lưu ảnh</button>
+          <button onclick="changeWritingWord()">🔄 Đổi chữ</button>
+        </div>
+      </div>
+      <button onclick="sv('profile')" style="margin-top:10px;">← Quay lại</button>`;
+    
+    setTimeout(() => {
+        writingCanvas = document.getElementById('writingCanvas');
+        if (!writingCanvas) return;
+        writingCtx = writingCanvas.getContext('2d');
+        writingCtx.lineWidth = 8;
+        writingCtx.lineCap = 'round';
+        writingCtx.strokeStyle = '#1e293b';
+        
+        writingCanvas.addEventListener('mousedown', startDrawing);
+        writingCanvas.addEventListener('mousemove', draw);
+        writingCanvas.addEventListener('mouseup', stopDrawing);
+        writingCanvas.addEventListener('mouseleave', stopDrawing);
+        writingCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
+        writingCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+        writingCanvas.addEventListener('touchend', stopDrawing);
+    }, 100);
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = writingCanvas.getBoundingClientRect();
+    const scaleX = writingCanvas.width / rect.width;
+    const scaleY = writingCanvas.height / rect.height;
+    writingCtx.beginPath();
+    writingCtx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const rect = writingCanvas.getBoundingClientRect();
+    const scaleX = writingCanvas.width / rect.width;
+    const scaleY = writingCanvas.height / rect.height;
+    writingCtx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    writingCtx.stroke();
+}
+
+function stopDrawing() { isDrawing = false; }
+
+function clearCanvas() {
+    writingCtx.clearRect(0, 0, writingCanvas.width, writingCanvas.height);
+    canvasHistory = [];
+}
+
+function undoCanvas() {
+    // Simple undo: clear and redraw from history is complex; just clear for now
+    clearCanvas();
+    toast('Đã xóa canvas');
+}
+
+function saveCanvasImage() {
+    const dataUrl = writingCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'chu_han_' + Date.now() + '.png';
+    link.click();
+    toast('Đã tải ảnh xuống');
+}
+
+function changeWritingWord() {
+    const allCards = db.custom_flashcards || [];
+    if (allCards.length === 0) return;
+    currentFlashcardIndex = (currentFlashcardIndex + 1) % allCards.length;
+    renderWritingPad(document.getElementById('hv-main'));
+}
+
 // ========== TIẾP NỐI PHẦN A – HỌC VIÊN ==========
 
 // Gọi là sv(id) – điều hướng tab
-function sv(id) {
+async function sv(id) {
     if (!user || user.r !== 'hv') { locOut(); return; }
     setActiveNav(id);
     const m = document.getElementById('hv-main');
+    if (!m) return;
     const d = db.data[user.uid] || {};
 
     if (id === 'home') {
@@ -1297,47 +2542,89 @@ function sv(id) {
                 return `<div class="card"><small>${n.date}</small><div>${content}${attach}</div></div>`;
             }).join('') : '<p>Chưa có thông báo nào.</p>');
     }
-
-    else if (id === 'reg') {
-        const now = new Date();
-        const regOpen = db.sked.regOpen ? new Date(db.sked.regOpen) : null;
-        const regClose = db.sked.regClose ? new Date(db.sked.regClose) : null;
-        const isOpen = db.sked.isOpen && (!regOpen || now >= regOpen) && (!regClose || now <= regClose);
-        const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
-        const registeredCount = (db.sked.slots || []).reduce((sum, s) => sum + (s.r || []).filter(uid => uid === user.uid).length, 0);
-        
-        let html = `<h3>📌 Lịch học - ${db.sked.t}</h3>`;
-        if (!isOpen) html += '<p>⛔ Đăng ký đang đóng</p>';
-        html += `<p>Số tiết đã đăng ký: <b>${registeredCount}</b> (tối đa 2)</p>`;
-        html += `<button onclick="saveWeekToHistory()" class="ghost">💾 Lưu lịch sử tuần này</button>`;
-        
+    else if (id === 'flashcards') {
+        renderFlashcards(m);
+    }
+    else if (id === 'writing') {
+        renderWritingPad(m);
+    }
+else if (id === 'reg') {
+    // Load lại sked từ Firebase trước khi hiển thị
+    try {
+        const skedSnap = await fbDB.ref('sked').once('value');
+        db.sked = skedSnap.val() || { t: "Tuần mới", slots: [], isOpen: true, regOpen: '', regClose: '' };
+    } catch(e) {
+        console.warn('Không load được sked:', e);
+        toast('Không thể tải lịch học, thử lại sau', 'error');
+        m.innerHTML = '<p>Lỗi tải lịch. Vui lòng thử lại.</p>';
+        return;
+    }
+    
+    if (!Array.isArray(db.sked.slots)) {
+        db.sked.slots = Object.values(db.sked.slots || {});
+    }
+    db.sked.slots.forEach((s, i) => {
+        if (!s.id) s.id = 'slot-' + i + '-' + Date.now();
+        if (!s.r) s.r = [];
+    });
+    
+    const now = new Date();
+    const regOpen = db.sked.regOpen ? new Date(db.sked.regOpen) : null;
+    const regClose = db.sked.regClose ? new Date(db.sked.regClose) : null;
+    const isOpen = db.sked.isOpen && (!regOpen || now >= regOpen) && (!regClose || now <= regClose);
+    const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+    const registeredCount = db.sked.slots.reduce((sum, s) => sum + (s.r || []).filter(uid => uid === user.uid).length, 0);
+    
+    let html = `<h3>📌 Lịch học - ${db.sked.t || 'Chưa có lịch'}</h3>`;
+    if (!isOpen) {
+        html += '<p style="color:var(--danger);">⛔ Đăng ký đang đóng</p>';
+    }
+    html += `<p>Số tiết đã đăng ký: <b>${registeredCount}</b> (tối thiểu 2 tiết)</p>`;
+    html += `<button onclick="saveWeekToHistory()" class="ghost">💾 Lưu lịch sử tuần này</button>`;
+    
+    if (isOpen) {
         days.forEach(day => {
-            const daySlots = (db.sked.slots || []).filter(s => s.d === day);
+            const daySlots = db.sked.slots.filter(s => s.d === day);
             if (daySlots.length === 0) return;
             html += `<div class="card"><b>${day}</b>`;
             daySlots.forEach(slot => {
-                const originalIndex = db.sked.slots.indexOf(slot);
                 const isRegistered = (slot.r || []).includes(user.uid);
-                const canRegister = isOpen && registeredCount < 2 && slot.r.length < slot.c;
+                const canRegister = registeredCount < 8 && slot.r.length < slot.c && !isRegistered;
                 html += `
-                  <div class="schedule-slot">
+                  <div class="schedule-slot" style="cursor:pointer;">
                     <div class="slot-info">${slot.ati} - ${slot.n} (${slot.r.length}/${slot.c})</div>
                     ${isRegistered
-                      ? `<button class="ghost" onclick="tglReg(${originalIndex})">❌ Hủy</button>`
+                      ? `<button class="ghost" onclick="event.stopPropagation();tglRegById('${slot.id}')">❌ Hủy</button>`
                       : (canRegister
-                          ? `<button onclick="tglReg(${originalIndex})">✅ Đăng ký</button>`
-                          : `<button disabled>Đầy</button>`)
+                          ? `<button onclick="event.stopPropagation();tglRegById('${slot.id}')">✅ Đăng ký</button>`
+                          : `<button disabled>${isRegistered ? 'Đã đăng ký' : 'Đầy'}</button>`)
                     }
                   </div>`;
             });
             html += `</div>`;
         });
-        html += `<hr><h5>Các tiết đã đăng ký:</h5>` +
-            (db.sked.slots || []).filter(s => (s.r || []).includes(user.uid)).map(s =>
-                `<div class="card">${s.n} (${s.d} - ${s.ati})</div>`).join('') || '<p>Chưa đăng ký tiết nào.</p>';
-        m.innerHTML = html;
     }
-
+    
+    html += `<hr><h5>Các tiết đã đăng ký:</h5>`;
+    const registeredSlots = db.sked.slots.filter(s => (s.r || []).includes(user.uid));
+    if (registeredSlots.length > 0) {
+        registeredSlots.forEach(s => {
+            html += `<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${s.n} (${s.d} - ${s.ati})</span>
+                ${!isOpen ? '' : `<button class="ghost" onclick="tglRegById('${s.id}')">❌ Hủy</button>`}
+            </div>`;
+        });
+    } else {
+        html += '<p>Chưa đăng ký tiết nào.</p>';
+    }
+    
+    try {
+        m.innerHTML = html;
+    } catch (renderError) {
+        console.error('Lỗi render lịch học:', renderError);
+        m.innerHTML = '<p>Lỗi hiển thị lịch học, vui lòng thử lại.</p>';
+    }
+}
     else if (id === '2c') {
         const assignedHw = (db.hw_list || []).filter(h => h.assignedTo && h.assignedTo.includes(user.uid));
         m.innerHTML = `<h3>📝 Bài tập</h3>` + assignedHw.map((h, i) => {
@@ -1348,7 +2635,6 @@ function sv(id) {
         }).join('') || '<p>Chưa có bài tập nào được giao.</p>';
         m.innerHTML += `<hr><h5>Lịch sử nộp:</h5>` + (db.submissions || []).filter(s => s.u === user.uid && s.type === 'hw').map(s => `<div class="card"><b>${s.n}</b> - ${s.date} <button onclick="viewSubmission('${s.n}','${s.date}')">Xem lại</button></div>`).join('');
     }
-
     else if (id === '2f') {
         const assignedExams = (db.exams || []).filter(x => x.assignedTo && x.assignedTo.includes(user.uid) && x.st == '1');
         m.innerHTML = `<h3>📋 Thi cử</h3>` + assignedExams.map((x, i) => {
@@ -1359,7 +2645,6 @@ function sv(id) {
         }).join('') || '<p>Chưa có đề thi nào được giao.</p>';
         m.innerHTML += `<hr><h5>Đã thi:</h5>` + (db.submissions || []).filter(s => s.u === user.uid && s.type === 'exam').map(s => `<div class="card">${s.n} - Điểm: ${s.score||'Chờ chấm'}</div>`).join('');
     }
-
     else if (id === '2b') {
         let notifs = [...(db.notif_history || [])];
         if (db.private_notif && db.private_notif[user.uid]) {
@@ -1372,13 +2657,21 @@ function sv(id) {
             return `<div class="card"><small>${n.date}</small><div>${content}${attach}</div></div>`;
         }).join('') || '<p>Không có thông báo.</p>';
     }
-
     else if (id === '2g') {
         const f = d.fee || { slots: 0, rate: 0, paid: 0, logs: [], receipts: [] };
         const bi = db.bank_info || {};
+        const total = f.slots * f.rate;
+        const debt = total - f.paid;
         m.innerHTML = `<h3>💰 Học phí</h3>
-          <div class="card">Số tiết: ${f.slots}, Đơn giá: ${f.rate.toLocaleString()}đ, Thành tiền: ${(f.slots*f.rate).toLocaleString()}đ</div>
-          <div class="card">Còn nợ: <b style="color:var(--danger)">${(f.slots*f.rate - f.paid).toLocaleString()}đ</b></div>
+          <div class="card">📚 Số tiết: <b>${f.slots}</b></div>
+          <div class="card">💳 Thành tiền: <b>${total.toLocaleString()}đ</b></div>
+          <div class="card">🏦 Còn nợ: <b style="color:var(--danger)">${debt.toLocaleString()}đ</b></div>
+          <div class="card">
+            <h5>🎟 Voucher (không bắt buộc)</h5>
+            <input id="voucherCode" placeholder="Nhập mã voucher">
+            <button onclick="applyVoucher('${user.uid}')">Áp dụng</button>
+            <small id="voucherMsg" style="color:var(--success);"></small>
+          </div>
           <div class="card"><b>🏦 Thông tin chuyển khoản</b><br>${bi.bankName||''}<br>${bi.accountNumber||''} ${bi.qrCode ? `<img src="${bi.qrCode}" style="max-width:200px; border-radius:12px;">` : ''}</div>
           <div class="card"><h5>📤 Gửi biên lai</h5>
             <input id="receiptAmount" type="number" placeholder="Số tiền">
@@ -1389,12 +2682,10 @@ function sv(id) {
           </div>
           <hr>${(f.logs||[]).map(l=>`<div>${l}</div>`).join('')}<br><button onclick="sv('profile')">← Quay lại</button>`;
     }
-
     else if (id === 'res_hv') {
         const tr = p => `<tr><td>${p.n}</td><td>${p.s}</td><td>${p.cm}</td></tr>`;
         m.innerHTML = `<h3>📊 Bảng điểm</h3><h5>Tích lũy</h5><table>${(d.pts_tl || []).map(tr).join('')}</table><br><h5>Kiểm tra/Thi</h5><table>${(d.pts_kt || []).map(tr).join('')}</table><br><button onclick="sv('profile')">← Quay lại</button>`;
     }
-
     else if (id === 'profile') {
         const f = d.fee || { slots: 0, rate: 0, paid: 0 };
         const badges = user.badges || [];
@@ -1409,28 +2700,30 @@ function sv(id) {
             <div class="profile-class">${user.l || 'Chưa có lớp'}</div>
             <small>${user.email||''} ${user.phone||''}</small>
           </div>
+          <div class="card profile-menu-item" onclick="sv('writing')"><span>✍️ Tập viết Hán tự</span><span>→</span></div>
           ${badgeHtml}
           <div class="card profile-menu-item" onclick="sv('2g')"><span>💰 Học phí</span><span>${(f.slots*f.rate-f.paid).toLocaleString()}đ →</span></div>
           <div class="card profile-menu-item" onclick="sv('res_hv')"><span>📊 Kết quả</span><span>→</span></div>
           <div class="card profile-menu-item" onclick="sv('support')"><span>🛠️ Hỗ trợ</span><span>→</span></div>
           <div class="logout-btn" onclick="locOut()">🚪 Đăng xuất</div>`;
     }
-
     else if (id === 'support') {
         m.innerHTML = `<h3>🛠️ Hỗ trợ</h3><div class="card"><textarea id="supportMsg" placeholder="Mô tả vấn đề của bạn"></textarea><button onclick="sendSupport()">Gửi yêu cầu</button></div><br><button onclick="sv('profile')">← Quay lại</button>`;
     }
 }
 
-// ========== ĐĂNG KÝ / HỦY SLOT ==========
-async function tglReg(i) {
-    const s = db.sked.slots[i];
+// ========== ĐĂNG KÝ / HỦY SLOT (DÙNG ID AN TOÀN) ==========
+async function tglRegById(slotId) {
+    if (!db.sked || !Array.isArray(db.sked.slots)) return;
+    const s = db.sked.slots.find(s => s.id === slotId);
+    if (!s) return;
     if (!s.r) s.r = [];
     const idx = s.r.indexOf(user.uid);
     if (idx > -1) {
         s.r.splice(idx, 1);
     } else {
-        const totalRegistered = (db.sked.slots || []).reduce((sum, sl) => sum + (sl.r || []).filter(uid => uid === user.uid).length, 0);
-        if (totalRegistered >= 2) { toast('Bạn đã đăng ký đủ 2 tiết. Hủy bớt để đăng ký tiết khác.', 'error'); return; }
+        const totalRegistered = db.sked.slots.reduce((sum, sl) => sum + (sl.r || []).filter(uid => uid === user.uid).length, 0);
+        if (totalRegistered >= 8) { toast('Bạn đã đăng ký đạt đến giới hạn. Không thể đăng ký thêm.', 'error'); return; }
         if (s.r.length >= s.c) { toast('Slot đã đầy!', 'error'); return; }
         s.r.push(user.uid);
     }
@@ -1438,19 +2731,32 @@ async function tglReg(i) {
     sv('reg');
 }
 
+// Giữ lại hàm tglRegByIndex và tglReg cũ (fallback)
+async function tglRegByIndex(i) {
+    if (!db.sked || !Array.isArray(db.sked.slots) || i < 0 || i >= db.sked.slots.length) return;
+    const s = db.sked.slots[i];
+    if (!s.id) s.id = 'slot-' + i + '-' + Date.now();
+    await tglRegById(s.id);
+}
+async function tglReg(i) {
+    await tglRegByIndex(i);
+}
+
 // ========== LÀM BÀI TẬP ==========
-function stH(index) {
+async function stH(index) {
     const assignedHw = (db.hw_list || []).filter(h => h.assignedTo && h.assignedTo.includes(user.uid));
     const h = assignedHw[index];
     if (!h) return;
-    startTime = new Date();
+    const serverNow = await getServerTime();
+    startTime = serverNow;
     currentWorkType = 'hw'; currentWorkName = h.n;
     let html = `<h3>${h.n}</h3>`;
     if (h.time) {
-        examEndTime = new Date(startTime.getTime() + h.time * 60000);
+        examEndTime = new Date(serverNow.getTime() + h.time * 60000);
         clearInterval(examTimer);
-        examTimer = setInterval(() => {
-            const diff = examEndTime - new Date();
+        examTimer = setInterval(async () => {
+            const nowServer = await getServerTime();
+            const diff = examEndTime - nowServer;
             if (diff <= 0) { clearInterval(examTimer); toast('Hết giờ! Bài sẽ được nộp.', 'error'); sub('hw', h.n); }
             const min = Math.floor(diff / 60000);
             const sec = Math.floor((diff % 60000) / 1000);
@@ -1460,14 +2766,18 @@ function stH(index) {
         html += `<div class="timer" id="hwTimer"></div>`;
     }
     h.questions.forEach((q, qi) => {
+        let audioHtml = '';
+        if (q.audioUrl) {
+            audioHtml = `<div style="margin:8px 0;"><audio controls style="width:100%;"><source src="${q.audioUrl}" type="audio/mpeg"></audio></div>`;
+        }
         if (q.type === 'mcq') {
-            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}<br>
+            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}${audioHtml}
               <label><input type="radio" name="q${qi}" value="A"> A. ${q.a}</label><br>
               <label><input type="radio" name="q${qi}" value="B"> B. ${q.b}</label><br>
               <label><input type="radio" name="q${qi}" value="C"> C. ${q.c}</label><br>
               <label><input type="radio" name="q${qi}" value="D"> D. ${q.d}</label></div>`;
         } else {
-            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}<br><textarea id="essay${qi}" placeholder="Trả lời..."></textarea></div>`;
+            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}${audioHtml}<br><textarea id="essay${qi}" placeholder="Trả lời..."></textarea></div>`;
         }
     });
     html += `<button onclick="sub('hw','${h.n}')">NỘP BÀI</button>`;
@@ -1475,7 +2785,7 @@ function stH(index) {
 }
 
 // ========== VÀO THI ==========
-function stX(index) {
+async function stX(index) {
     const assignedExams = (db.exams || []).filter(x => x.assignedTo && x.assignedTo.includes(user.uid) && x.st == '1');
     const x = assignedExams[index];
     if (!x) return;
@@ -1483,16 +2793,18 @@ function stX(index) {
     if (p !== x.p) { toast('Sai mật khẩu!', 'error'); return; }
     const submitted = (db.submissions || []).filter(s => s.u === user.uid && s.n === x.n).length;
     if (x.slot && submitted >= parseInt(x.slot)) { toast('Bạn đã hết lượt thi', 'error'); return; }
-    startTime = new Date();
+    const serverNow = await getServerTime();
+    startTime = serverNow;
     currentWorkType = 'exam'; currentWorkName = x.n;
     isTakingExam = true;
     activateAntiCheat();
     let html = `<h3>${x.n}</h3><div class="cheat-warning" id="cheatWarning" style="display:none"></div>`;
     if (x.time) {
-        examEndTime = new Date(startTime.getTime() + x.time * 60000);
+        examEndTime = new Date(serverNow.getTime() + x.time * 60000);
         clearInterval(examTimer);
-        examTimer = setInterval(() => {
-            const diff = examEndTime - new Date();
+        examTimer = setInterval(async () => {
+            const nowServer = await getServerTime();
+            const diff = examEndTime - nowServer;
             if (diff <= 0) { clearInterval(examTimer); toast('Hết giờ! Bài thi đã được nộp.', 'error'); sub('exam', x.n); }
             const min = Math.floor(diff / 60000);
             const sec = Math.floor((diff % 60000) / 1000);
@@ -1501,15 +2813,23 @@ function stX(index) {
         }, 1000);
         html += `<div class="timer" id="examTimer"></div>`;
     }
-    x.questions.forEach((q, qi) => {
+    const safeQuestions = x.questions.map(q => {
+        const { ans, ...rest } = q;
+        return rest;
+    });
+    safeQuestions.forEach((q, qi) => {
+        let audioHtml = '';
+        if (q.audioUrl) {
+            audioHtml = `<div style="margin:8px 0;"><audio controls style="width:100%;"><source src="${q.audioUrl}" type="audio/mpeg"></audio></div>`;
+        }
         if (q.type === 'mcq') {
-            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}<br>
+            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}${audioHtml}<br>
               <label><input type="radio" name="q${qi}" value="A"> A. ${q.a}</label><br>
               <label><input type="radio" name="q${qi}" value="B"> B. ${q.b}</label><br>
               <label><input type="radio" name="q${qi}" value="C"> C. ${q.c}</label><br>
               <label><input type="radio" name="q${qi}" value="D"> D. ${q.d}</label></div>`;
         } else {
-            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}<br><textarea id="essay${qi}" placeholder="Trả lời..."></textarea></div>`;
+            html += `<div class="card"><b>Câu ${qi+1} (${q.point||1}đ):</b> ${q.q}${audioHtml}<br><textarea id="essay${qi}" placeholder="Trả lời..."></textarea></div>`;
         }
     });
     html += `<button onclick="sub('exam','${x.n}')">NỘP BÀI</button>`;
@@ -1534,8 +2854,9 @@ async function sub(type, name) {
             }
         });
     }
-    const diff = Math.floor((new Date() - startTime) / 1000), dur = Math.floor(diff / 60) + "p " + (diff % 60) + "s";
-    const subObj = { u: user.uid, type, n: name, date: new Date().toLocaleString(), dur, answers };
+    const nowServer = await getServerTime();
+    const diff = Math.floor((nowServer - startTime) / 1000), dur = Math.floor(diff / 60) + "p " + (diff % 60) + "s";
+    const subObj = { u: user.uid, type, n: name, date: nowServer.toLocaleString(), dur, answers };
     if (type === 'exam') {
         const mcqAnswers = answers.filter(a => a.selected !== undefined);
         const correctCount = mcqAnswers.filter(a => a.selected === a.correct).length;
@@ -1600,6 +2921,44 @@ function viewSubmission(name, date) {
     }
     html += `<button onclick="sv('${sub.type==='hw'?'2c':'2f'}')">← Quay lại</button>`;
     document.getElementById('hv-main').innerHTML = html;
+}
+// ========== ÁP DỤNG VOUCHER ==========
+async function applyVoucher(uid) {
+    const code = document.getElementById('voucherCode')?.value?.trim();
+    const msgEl = document.getElementById('voucherMsg');
+    if (!code) { toast('Nhập mã voucher', 'error'); return; }
+    
+    const vouchersSnap = await fbDB.ref('vouchers').once('value');
+    const vouchers = vouchersSnap.val() || [];
+    const voucherIndex = vouchers.findIndex(v => v.code === code && v.active && v.remaining > 0);
+    
+    if (voucherIndex === -1) { 
+        if (msgEl) msgEl.innerText = '❌ Voucher không hợp lệ hoặc đã hết lượt'; 
+        return; 
+    }
+    
+    const d = db.data[uid] || {};
+    if (!d.fee) d.fee = { slots: 0, rate: 0, paid: 0, logs: [], receipts: [] };
+    
+    vouchers[voucherIndex].remaining--;
+    d.fee.paid += vouchers[voucherIndex].amount;
+    d.fee.logs.unshift(`🎟 ${new Date().toLocaleDateString()}: +${vouchers[voucherIndex].amount}đ (Voucher: ${code})`);
+    
+    // Lưu lịch sử voucher
+    if (!db.voucher_history) db.voucher_history = [];
+    db.voucher_history.unshift({
+        code: code,
+        uid: uid,
+        userName: user.n,
+        amount: vouchers[voucherIndex].amount,
+        date: new Date().toLocaleString()
+    });
+    
+    db.vouchers = vouchers;
+    await saveDB();
+    if (msgEl) msgEl.innerText = `✅ Đã áp dụng voucher, giảm ${vouchers[voucherIndex].amount.toLocaleString()}đ`;
+    toast('Voucher đã được áp dụng!');
+    sv('2g');
 }
 
 // ========== GỬI BIÊN LAI ==========
@@ -1730,6 +3089,7 @@ function viewSubmissionDetail(submissionIndex) {
         }
         html += `</div>`;
     });
+    html += addAudioFeedbackUI(sub);
     html += `<div class="card"><b>Tổng điểm:</b> <span id="total-score">Đang tính...</span>
       <button onclick="saveManualGrades(${submissionIndex})">💾 Lưu điểm & nhận xét</button>
       <button onclick="calculateTotal(${submissionIndex})">🔄 Tính tổng</button></div>
@@ -1781,6 +3141,63 @@ async function saveManualGrades(submissionIndex) {
     await saveDB();
     toast('Đã lưu điểm');
     viewSubmissionDetail(submissionIndex);
+}
+
+// ========== GHI ÂM PHẢN HỒI ==========
+let mediaRecorder, audioChunks = [];
+let recordingSubmissionIndex = null;
+
+async function startAudioFeedback(submissionIndex) {
+    recordingSubmissionIndex = submissionIndex;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const sub = db.submissions[submissionIndex];
+            if (!sub) return;
+            showLoading();
+            const storageRef = fbStorage.ref('audio_feedback/' + sub.u + '_' + Date.now() + '.webm');
+            const uploadTask = await storageRef.put(audioBlob);
+            const downloadURL = await uploadTask.ref.getDownloadURL();
+            sub.audioFeedback = downloadURL;
+            sub.audioFeedbackDate = new Date().toLocaleString();
+            await saveDB();
+            hideLoading();
+            toast('Đã lưu phản hồi âm thanh');
+            viewSubmissionDetail(submissionIndex);
+        };
+        mediaRecorder.start();
+        document.getElementById('recordingStatus').innerText = '🔴 Đang ghi âm...';
+        document.getElementById('startRecordBtn').disabled = true;
+        document.getElementById('stopRecordBtn').disabled = false;
+    } catch (e) { toast('Không thể truy cập microphone', 'error'); }
+}
+
+function stopAudioFeedback() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        document.getElementById('recordingStatus').innerText = '✅ Đã lưu';
+        document.getElementById('startRecordBtn').disabled = false;
+        document.getElementById('stopRecordBtn').disabled = true;
+    }
+}
+
+function addAudioFeedbackUI(sub) {
+    let html = '';
+    if (sub.audioFeedback) {
+        html += `<div style="margin-top:10px;"><b>🎙 Phản hồi âm thanh (${sub.audioFeedbackDate || 'N/A'}):</b><br>
+          <audio controls src="${sub.audioFeedback}" style="width:100%; margin-top:5px;"></audio></div>`;
+    }
+    html += `<div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+      <button id="startRecordBtn" onclick="startAudioFeedback(${db.submissions.indexOf(sub)})">🎙 Ghi âm phản hồi</button>
+      <button id="stopRecordBtn" onclick="stopAudioFeedback()" disabled>⏹ Dừng</button>
+      <span id="recordingStatus" style="font-size:14px;"></span>
+    </div>`;
+    return html;
 }
 
 function renderSubs(type) {
@@ -1906,33 +3323,56 @@ function renderCleanup(c) {
     const currentYear = new Date().getFullYear();
     c.innerHTML = `<h3>🧹 Dọn dẹp dữ liệu cũ</h3>
       <div class="card">
-        <p>Chọn thời điểm: mọi dữ liệu <b>trước</b> tháng/năm sẽ bị xóa. Cẩn thận!</p>
+        <p>Chọn thời điểm: mọi dữ liệu <b>trước</b> tháng/năm sẽ bị xóa.</p>
         <div style="display:flex; gap:10px;">
           <select id="clean-month">${months.map(m => `<option value="${m}">Tháng ${m}</option>`).join('')}</select>
           <input id="clean-year" type="number" value="${currentYear}" min="2020" max="${currentYear+1}">
         </div>
-        <button class="danger" onclick="executeCleanup()">🗑️ Xóa dữ liệu trước thời điểm này</button>
+        <hr>
+        <button class="danger" onclick="executeCleanup('all')" style="margin:4px;">🗑️ Xóa TẤT CẢ</button>
+        <button class="danger" onclick="executeCleanup('submissions')" style="margin:4px;">🗑️ Xóa bài nộp</button>
+        <button class="danger" onclick="executeCleanup('notif')" style="margin:4px;">🗑️ Xóa thông báo</button>
+        <button class="danger" onclick="executeCleanup('audit')" style="margin:4px;">🗑️ Xóa lịch sử hoạt động</button>
+        <button class="danger" onclick="executeCleanup('sked')" style="margin:4px;">🗑️ Xóa lịch sử tuần</button>
       </div>`;
 }
 
-async function executeCleanup() {
+async function executeCleanup(type) {
     const month = document.getElementById('clean-month').value;
     const year = document.getElementById('clean-year').value;
     const cutoff = new Date(`${year}-${month}-01T00:00:00`);
     if (isNaN(cutoff.getTime())) { toast('Thời gian không hợp lệ', 'error'); return; }
-    modal(`Xác nhận xóa tất cả dữ liệu trước ${month}/${year}? Hành động không thể hoàn tác!`, async () => {
+    
+    const typeNames = { all: 'tất cả', submissions: 'bài nộp', notif: 'thông báo', audit: 'lịch sử hoạt động', sked: 'lịch sử tuần' };
+    
+    modal(`Xác nhận xóa ${typeNames[type]} trước ${month}/${year}?`, async () => {
         showLoading();
-        db.submissions = (db.submissions || []).filter(s => new Date(s.date) >= cutoff);
-        db.notif_history = (db.notif_history || []).filter(n => new Date(n.date) >= cutoff);
-        if (db.private_notif) {
-            Object.keys(db.private_notif).forEach(uid => {
-                db.private_notif[uid] = (db.private_notif[uid] || []).filter(n => new Date(n.date) >= cutoff);
-            });
+        if (type === 'all' || type === 'submissions') {
+            db.submissions = (db.submissions || []).filter(s => new Date(s.date) >= cutoff);
+            await saveDB('submissions', db.submissions);
         }
-        db.audit_log = (db.audit_log || []).filter(l => new Date(l.timestamp) >= cutoff);
-        db.forgot_pwd = (db.forgot_pwd || []).filter(r => new Date(r.date) >= cutoff);
-        db.sked_history = (db.sked_history || []).filter(h => new Date(h.date) >= cutoff);
-        await saveDB();
+        if (type === 'all' || type === 'notif') {
+            db.notif_history = (db.notif_history || []).filter(n => new Date(n.date) >= cutoff);
+            await saveDB('notif_history', db.notif_history);
+            if (db.private_notif) {
+                for (let uid in db.private_notif) {
+                    db.private_notif[uid] = (db.private_notif[uid] || []).filter(n => new Date(n.date) >= cutoff);
+                    await saveDB(`private_notif/${uid}`, db.private_notif[uid]);
+                }
+            }
+        }
+        if (type === 'all' || type === 'audit') {
+            db.audit_log = (db.audit_log || []).filter(l => new Date(l.timestamp) >= cutoff);
+            await saveDB('audit_log', db.audit_log);
+        }
+        if (type === 'all') {
+            db.forgot_pwd = (db.forgot_pwd || []).filter(r => new Date(r.date) >= cutoff);
+            await saveDB('forgot_pwd', db.forgot_pwd);
+        }
+        if (type === 'all' || type === 'sked') {
+            db.sked_history = (db.sked_history || []).filter(h => new Date(h.date) >= cutoff);
+            await saveDB('sked_history', db.sked_history);
+        }
         hideLoading();
         toast('Đã dọn dẹp xong!');
         op('cleanup');
